@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: adzan
+  description: Adzan is open API to get pray time throughout Indonesia region based on Bimas Islam Kementrian Agama Republik Indonesia
+  version: 0.1.0
+
+servers:
+  - url: /
+
+tags:
+  - name: Pray Time
+    description: Pray time
+  - name: City
+    description: City data
+  - name: Hijri Calendar
+    description: Hijri calendar
+
+paths:
+  /today:
+    get:
+      tags:
+        - Pray Time
+      summary: Get today pray time
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: city_code
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+            - standard
+            - unixtime
+            - iso8601
+            default: standard
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum:
+            - en
+            - id
+            - ar
+            default: en
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ResponsePrayEn'
+                  - $ref: '#/components/schemas/ResponsePrayId'
+                  - $ref: '#/components/schemas/ResponsePrayAr'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /daily:
+    get:
+      tags:
+        - Pray Time
+      summary: Get pray time daily
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: city_code
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+            - standard
+            - unixtime
+            - iso8601
+            default: standard
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum:
+            - en
+            - id
+            - ar
+            default: en
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ResponsePrayEn'
+                  - $ref: '#/components/schemas/ResponsePrayId'
+                  - $ref: '#/components/schemas/ResponsePrayAr'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /monthly:
+    get:
+      tags:
+        - Pray Time
+      summary: Get pray time monthly
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: city_code
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+            - standard
+            - unixtime
+            - iso8601
+            default: standard
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum:
+            - en
+            - id
+            - ar
+            default: en
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ResponsePrayEn'
+                    - $ref: '#/components/schemas/ResponsePrayId'
+                    - $ref: '#/components/schemas/ResponsePrayAr'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /yearly:
+    get:
+      tags:
+        - Pray Time
+      summary: Get pray time yearly
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+            minimum: 2018
+        - name: month
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: city
+          in: query
+          schema:
+            type: string
+        - name: city_code
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+            - standard
+            - unixtime
+            - iso8601
+            default: standard
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum:
+            - en
+            - id
+            - ar
+            default: en
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/ResponsePrayEn'
+                    - $ref: '#/components/schemas/ResponsePrayId'
+                    - $ref: '#/components/schemas/ResponsePrayAr'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /city:
+    get:
+      tags:
+        - City
+      summary: Get city
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: latitude
+          in: query
+          schema:
+            type: number
+        - name: longitude
+          in: query
+          schema:
+            type: number
+        - name: city_code
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseCity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /city/search:
+    get:
+      tags:
+        - City
+      summary: Search city
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResponseCity'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /hijri:
+    get:
+      tags:
+        - Hijri Calendar
+      summary: Get today Hijri date
+      security:
+       - bearerAuth: []
+      parameters:
+        - name: language
+          in: query
+          schema:
+            type: string
+            enum:
+            - en
+            - id
+            - ar
+            default: en
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ResponseHijriEn'
+                  - $ref: '#/components/schemas/ResponseHijriId'
+                  - $ref: '#/components/schemas/ResponseHijriAr'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    ResponsePrayEn:
+      type: object
+      properties:
+        location:
+          $ref: '#/components/schemas/ResponseCity'
+        date:
+          type: object
+          properties:
+            day:
+              type: string
+              example: Wednesday
+            date:
+              type: string
+              example: 2022-03-02
+        times:
+          type: object
+          properties:
+            imsak:
+              type: string
+              example: 04:32
+            fajr:
+              type: string
+              example: 04:42
+            sunrise:
+              type: string
+              example: 05:54
+            dhuhr:
+              type: string
+              example: 12:08
+            asr:
+              type: string
+              example: 15:10
+            maghrib:
+              type: string
+              example: 18:14
+            isha:
+              type: string
+              example: 19:23
+            midnight:
+              type: string
+              example: 00:05
+    ResponsePrayId:
+      type: object
+      properties:
+        date:
+          type: object
+          properties:
+            hari:
+              type: string
+              example: Rabu
+            tanggal:
+              type: string
+              example: 2022-03-02
+        times:
+          type: object
+          properties:
+            imsak:
+              type: string
+              example: 04:32
+            subuh:
+              type: string
+              example: 04:42
+            terbit:
+              type: string
+              example: 05:54
+            dzuhur:
+              type: string
+              example: 12:08
+            ashar:
+              type: string
+              example: 15:10
+            maghrib:
+              type: string
+              example: 18:14
+            isya:
+              type: string
+              example: 19:23
+            tengah_malam:
+              type: string
+              example: 00:05
+    ResponsePrayAr:
+      type: object
+      properties:
+        date:
+          type: object
+          properties:
+            hari:
+              type: string
+              example: الأربعاء
+            tanggal:
+              type: string
+              example: 2022-03-02
+        times:
+          type: object
+          properties:
+            إمساك:
+              type: string
+              example: 04:32
+            فجر:
+              type: string
+              example: 04:42
+            شروق:
+              type: string
+              example: 05:54
+            ظهر:
+              type: string
+              example: 12:08
+            عصر:
+              type: string
+              example: 15:10
+            مغرب:
+              type: string
+              example: 18:14
+            عشاء:
+              type: string
+              example: 19:23
+            منتصف الليل:
+              type: string
+              example: 00:05
+    ResponseCity:
+      type: object
+      properties:
+        city_code:
+          type: integer
+        city:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+    ResponseHijriEn:
+      type: object
+      properties:
+        day_of_week:
+          type: integer
+          minimum: 1
+          maximum: 29
+          example: 7
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 7
+        year:
+          type: integer
+          example: 1443
+        month_name:
+          type: string
+          example: Ramaḍān
+        string:
+          type: string
+          example: 7 Ramaḍān 1443 H
+        notes:
+          type: string
+          example: Umm al-Qura
+    ResponseHijriId:
+      type: object
+      properties:
+        day_of_week:
+          type: integer
+          minimum: 1
+          maximum: 29
+          example: 7
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          example: 7
+        year:
+          type: integer
+          example: 1443
+        month_name:
+          type: string
+          example: Ramadhan
+        string:
+          type: string
+          example: 7 Ramadhan 1443 H
+        notes:
+          type: string
+          example: Umm al-Qura
+    ResponseHijriAr:
+      type: object
+      properties:
+        day_of_week:
+          type: string
+          example: ٧
+        month:
+          type: string
+          example: ٧
+        year:
+          type: string
+          example: ١٤٤٣
+        month_name:
+          type: string
+          example: رمضان
+        string:
+          type: string
+          example: ٧ رمضان ١٤٤٣ ه
+        notes:
+          type: string
+          example: Umm al-Qura
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Bad request
+              data:
+                type: object
+                nullable: true
+                example: null
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Unauthorized
+              data:
+                type: object
+                nullable: true
+                example: null
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Forbidden
+              data:
+                type: object
+                nullable: true
+                example: null
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Not found
+              data:
+                type: object
+                nullable: true
+                example: null
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                example: Internal server error
+              data:
+                type: object
+                nullable: true
+                example: null
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package adzan;
+option go_package = "./adzan";
+
+enum TimeFormat {
+    STANDARD = 0;   // Standard
+    UNIXTIME = 1;   // Unix time
+    ISO8601 = 2;    // ISO 8601
+}
+
+enum Language {
+    EN = 0;     // English
+    ID = 1;     // Bahasa Indonesia
+    AR = 2;     // Arabic
+}
+
+message PrayTimeTodayRequest {
+    optional string city = 1;       // Either city or city_code must be present
+    optional int32 city_code = 2;   // Either city or city_code must be present
+    optional TimeFormat format = 3; // Default is standard
+    optional Language language = 4; // Default is English
+}
+
+message PrayTimeDailyRequest {
+    string date = 1;                // Must be in RFC3999 (ISO8601) format
+    optional string city = 2;       // Either city or city_code must be present
+    optional int32 city_code = 3;   // Either city or city_code must be present
+    optional TimeFormat format = 4; // Default is standard
+    optional Language language = 5; // Default is English
+}
+
+message PrayTimeMonthlyRequest {
+    int32 month = 1;
+    optional string city = 2;       // Either city or city_code must be present
+    optional int32 city_code = 3;   // Either city or city_code must be present
+    optional TimeFormat format = 4; // Default is standard
+    optional Language language = 5; // Default is English
+}
+
+message PrayTimeYearlyRequest {
+    int32 year = 1;
+    optional string city = 2;       // Either city or city_code must be present
+    optional int32 city_code = 3;   // Either city or city_code must be present
+    optional TimeFormat format = 4; // Default is standard
+    optional Language language = 5; // Default is English
+}
+
+message CityRequest {
+    optional float latitude = 1;    // Either latitude with longitude or city_code must be present
+    optional float longitude = 2;   // Either latitude with longitude or city_code must be present
+    optional int32 city_code = 3;   // Either latitude with longitude or city_code must be present
+}
+
+message CityResponse {
+    int32 city_code = 1;
+    string city = 2;
+    float latitude = 3;
+    float longitude = 4;
+}
+
+message CitySearchRequest {
+    string keyword = 1;
+}
+
+message CitySearchResponse {
+    repeated CityResponse cities = 1;
+}
+
+message date {
+    string day = 1;
+    string date = 2;
+}
+
+message times {
+    string imsak = 1;
+    string fajr = 2;
+    string sunrise = 3;
+    string dhuhr = 4;
+    string asr = 5;
+    string maghrib = 6;
+    string isha = 7;
+    string midnight = 8;
+}
+
+message PrayTimeResponse {
+    CityResponse location = 1;
+    date date = 2;
+    times times = 3;
+}
+
+message HijriRequest {
+    Language language = 1;
+}
+
+message HijriResponse {
+    int32 day_of_week = 1;
+    int32 month = 2;
+    int32 year = 3;
+    string month_name = 4;
+    string string = 5;      // Example: 7 Ramaḍān 1443 H
+    string notes = 6;       // Example: Umm al-Qura
+}
+
+/**
+ * gRPC Functions
+ *
+ * Use gRPC Metadata to send this authentication data:
+ * - Authorization Bearer
+ */
+service OrderService {
+    // Get today pray time. Metadata: Authorization Bearer
+    rpc PrayTimeToday(PrayTimeTodayRequest) returns (PrayTimeResponse) {};
+    // Get pray time daily. Metadata: Authorization Bearer
+    rpc PrayTimeDaily(PrayTimeDailyRequest) returns (PrayTimeResponse) {};
+    // Get pray time monthly. Metadata: Authorization Bearer
+    rpc PrayTimeMonthly(PrayTimeMonthlyRequest) returns (PrayTimeResponse) {};
+    // Get pray time yearly. Metadata: Authorization Bearer
+    rpc PrayTimeYearly(PrayTimeYearlyRequest) returns (PrayTimeResponse) {};
+    // Get city. Metadata: Authorization Bearer
+    rpc City(CityRequest) returns (CityResponse) {};
+    // Search city. Metadata: Authorization Bearer
+    rpc CitySearch(CitySearchRequest) returns (CitySearchResponse) {};
+    // Get today Hijri date. Metadata: Authorization Bearer
+    rpc Hijri(HijriRequest) returns (HijriResponse) {};
+}
