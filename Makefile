@@ -1,5 +1,5 @@
 export GO111MODULE=on
-NAME=adzan
+NAME=adzan-service
 TAG := $(shell git describe --candidates=0 2>/dev/null)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 VERSION := $(TAG:v%=%)
