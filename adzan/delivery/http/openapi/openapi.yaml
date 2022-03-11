@@ -26,10 +26,12 @@ paths:
       parameters:
         - name: city
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: string
         - name: city_code
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: integer
         - name: format
@@ -76,15 +78,18 @@ paths:
       parameters:
         - name: date
           in: query
+          required: true
           schema:
             type: string
             format: date-time
         - name: city
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: string
         - name: city_code
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: integer
         - name: format
@@ -129,18 +134,28 @@ paths:
       security:
        - bearerAuth: []
       parameters:
+        - name: year
+          in: query
+          description: Minimum year 2022
+          required: true
+          schema:
+            type: integer
+            minimum: 2022
         - name: month
           in: query
+          required: true
           schema:
             type: integer
             minimum: 1
             maximum: 12
         - name: city
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: string
         - name: city_code
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: integer
         - name: format
@@ -189,21 +204,19 @@ paths:
       parameters:
         - name: year
           in: query
+          description: Minimum year 2022
+          required: true
           schema:
             type: integer
-            minimum: 2018
-        - name: month
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 12
+            minimum: 2022
         - name: city
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: string
         - name: city_code
           in: query
+          description: Either **city** or **city_code** must be present
           schema:
             type: integer
         - name: format
@@ -252,14 +265,17 @@ paths:
       parameters:
         - name: latitude
           in: query
+          description: Either **latitude** with **longitude** or **city_code** must be present
           schema:
             type: number
         - name: longitude
           in: query
+          description: Either **latitude** with **longitude** or **city_code** must be present
           schema:
             type: number
         - name: city_code
           in: query
+          description: Either **latitude** with **longitude** or **city_code** must be present
           schema:
             type: integer
       responses:
@@ -287,6 +303,7 @@ paths:
       parameters:
         - name: keyword
           in: query
+          required: true
           schema:
             type: number
       responses:
@@ -386,6 +403,8 @@ components:
     ResponsePrayId:
       type: object
       properties:
+        location:
+          $ref: '#/components/schemas/ResponseCity'
         date:
           type: object
           properties:
@@ -425,6 +444,8 @@ components:
     ResponsePrayAr:
       type: object
       properties:
+        location:
+          $ref: '#/components/schemas/ResponseCity'
         date:
           type: object
           properties:

@@ -31,15 +31,16 @@ message PrayTimeDailyRequest {
 }
 
 message PrayTimeMonthlyRequest {
-    int32 month = 1;
-    optional string city = 2;       // Either city or city_code must be present
-    optional int32 city_code = 3;   // Either city or city_code must be present
-    optional TimeFormat format = 4; // Default is standard
-    optional Language language = 5; // Default is English
+    int32 year = 1;                 // Maximum year 2022
+    int32 month = 2;
+    optional string city = 3;       // Either city or city_code must be present
+    optional int32 city_code = 4;   // Either city or city_code must be present
+    optional TimeFormat format = 5; // Default is standard
+    optional Language language = 6; // Default is English
 }
 
 message PrayTimeYearlyRequest {
-    int32 year = 1;
+    int32 year = 1;                 // Maximum year 2022
     optional string city = 2;       // Either city or city_code must be present
     optional int32 city_code = 3;   // Either city or city_code must be present
     optional TimeFormat format = 4; // Default is standard
@@ -90,7 +91,7 @@ message PrayTimeResponse {
 }
 
 message HijriRequest {
-    Language language = 1;
+    optional Language language = 1;
 }
 
 message HijriResponse {
