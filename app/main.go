@@ -148,10 +148,10 @@ func main() {
 
 	// HTTP routing
 	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Redirect("/web/wizard.html")
+		return c.Redirect("/web")
 	})
 	// TODO: routing here
-	// _DeliveryHTTPAdzan.RouterWizard(app)
+	_DeliveryHTTPAdzan.RouterWeb(app)
 	_DeliveryHTTPAdzan.RouterOpenAPI(app)
 	_DeliveryHTTPAdzan.RouterGRPC(app)
 
