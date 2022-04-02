@@ -2,13 +2,17 @@ package main
 
 import (
 	_DeliveryHTTPAdzan "adzan/adzan/delivery/http"
+	_RepositoryRedisAdzan "adzan/adzan/repository/redis"
+	_UsecaseAdzan "adzan/adzan/usecase"
 	"adzan/config"
+	"context"
 
 	"flag"
 	"net"
 
 	"google.golang.org/grpc"
 
+	"github.com/go-redis/redis/v8"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -83,20 +87,20 @@ func main() {
 	// 	log.Warn(err)
 	// }
 
-	// // Initialize Redis
-	// dbRedis := redis.NewClient(&redis.Options{
-	// 	Addr:     viper.GetString("redis.host") + ":" + viper.GetString("redis.port"),
-	// 	Username: viper.GetString("redis.username"),
-	// 	Password: viper.GetString("redis.password"),
-	// 	DB:       viper.GetInt("redis.database"),
-	// 	PoolSize: viper.GetInt("redis.max_connection"),
-	// })
+	// Initialize Redis
+	dbRedis := redis.NewClient(&redis.Options{
+		Addr:     viper.GetString("redis.host") + ":" + viper.GetString("redis.port"),
+		Username: viper.GetString("redis.username"),
+		Password: viper.GetString("redis.password"),
+		DB:       viper.GetInt("redis.database"),
+		PoolSize: viper.GetInt("redis.max_connection"),
+	})
 
-	// _, err = dbRedis.Ping(context.Background()).Result()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// log.Info("Redis connection established")
+	_, err := dbRedis.Ping(context.Background()).Result()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("Redis connection established")
 
 	// // Initialize gRPC pool
 	// conn := func() (client *grpc.ClientConn, err error) {
@@ -154,6 +158,9 @@ func main() {
 	_DeliveryHTTPAdzan.RouterWeb(app)
 	_DeliveryHTTPAdzan.RouterOpenAPI(app)
 	_DeliveryHTTPAdzan.RouterGRPC(app)
+	repo := _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
+	usecase := _UsecaseAdzan.NewCityUsecase(repo)
+	_DeliveryHTTPAdzan.RouterAPI(app, usecase)
 
 	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {
 		log.Fatal(err)

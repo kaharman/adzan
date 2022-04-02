@@ -3,6 +3,7 @@ module adzan
 go 1.16
 
 require (
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.29.0
 	github.com/gofiber/utils v0.1.2
 	github.com/sirupsen/logrus v1.8.1

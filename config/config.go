@@ -16,7 +16,7 @@ import (
 type Config struct {
 	Server Server `yaml:"server"`
 	// MySQL      MySQL      `yaml:"mysql"`
-	// Redis      Redis      `yaml:"redis"`
+	Redis Redis `yaml:"redis"`
 	// GRPC       GRPC       `yaml:"grpc"`
 	Middleware Middleware `yaml:"middleware"`
 }
@@ -89,25 +89,25 @@ type Timeout struct {
 // 	PathMigrate string `yaml:"path_migrate"`
 // }
 
-// type Redis struct {
-// 	// Host is the Redis IP Address to connect to
-// 	Host string `yaml:"host,omitempty"`
+type Redis struct {
+	// Host is the Redis IP Address to connect to
+	Host string `yaml:"host,omitempty"`
 
-// 	// Port is the Redis Port to connect to
-// 	Port string `yaml:"port,omitempty"`
+	// Port is the Redis Port to connect to
+	Port string `yaml:"port,omitempty"`
 
-// 	// MaxActive is Redis maximum connection
-// 	MaxConnection uint64 `yaml:"max_connection"`
+	// MaxActive is Redis maximum connection
+	MaxConnection uint64 `yaml:"max_connection"`
 
-// 	// Username
-// 	Username string `yaml:"username"`
+	// Username
+	Username string `yaml:"username"`
 
-// 	// Password
-// 	Password string `yaml:"password"`
+	// Password
+	Password string `yaml:"password"`
 
-// 	// Database
-// 	Database uint64 `yaml:"database"`
-// }
+	// Database
+	Database uint64 `yaml:"database"`
+}
 
 // type GRPC struct {
 // 	Host            string        `yaml:"host"`
@@ -147,14 +147,14 @@ var defaultConfig = &Config{
 	// 	Password:    "root",
 	// 	PathMigrate: "file:///migration",
 	// },
-	// Redis: Redis{
-	// 	Host:          "localhost",
-	// 	Port:          "6379",
-	// 	MaxConnection: 80,
-	// 	Username:      "",
-	// 	Password:      "",
-	// 	Database:      0,
-	// },
+	Redis: Redis{
+		Host:          "localhost",
+		Port:          "6379",
+		MaxConnection: 80,
+		Username:      "",
+		Password:      "",
+		Database:      0,
+	},
 	// GRPC: GRPC{
 	// 	Host:            "localhost",
 	// 	Port:            "59090",
