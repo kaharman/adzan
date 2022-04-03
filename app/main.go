@@ -158,9 +158,11 @@ func main() {
 	_DeliveryHTTPAdzan.RouterWeb(app)
 	_DeliveryHTTPAdzan.RouterOpenAPI(app)
 	_DeliveryHTTPAdzan.RouterGRPC(app)
-	repo := _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
-	usecase := _UsecaseAdzan.NewCityUsecase(repo)
-	_DeliveryHTTPAdzan.RouterAPI(app, usecase)
+	prayTimeRepo := _RepositoryRedisAdzan.NewRedisPrayTimeRepository(dbRedis)
+	cityRepo := _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
+	prayTimeUsecase := _UsecaseAdzan.NewPrayTimeUsecase(cityRepo, prayTimeRepo)
+	cityUsecase := _UsecaseAdzan.NewCityUsecase(cityRepo)
+	_DeliveryHTTPAdzan.RouterAPI(app, prayTimeUsecase, cityUsecase)
 
 	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {
 		log.Fatal(err)
