@@ -38,9 +38,24 @@ type PrayTimeResponseDTO struct {
 }
 
 type PrayTimeUsecase interface {
-	GetTodayByCode(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
-	GetTodayByCodeStandard(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
-	GetTodayByCodeISO8601(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCode(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCodeStandard(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCodeISO8601(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCityName(ctx context.Context, cityName string, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCityNameStandard(ctx context.Context, cityName string, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetDailyByCityNameISO8601(ctx context.Context, cityName string, date string, lang string) (res PrayTimeResponseDTO, err error)
+	GetMonthlyByCode(ctx context.Context, cityCode int, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetMonthlyByCodeStandard(ctx context.Context, cityCode int, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetMonthlyByCodeISO8601(ctx context.Context, cityCode int, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetMonthlyByCityName(ctx context.Context, cityName string, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetMonthlyByCityNameStandard(ctx context.Context, cityName string, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetMonthlyByCityNameISO8601(ctx context.Context, cityName string, year int, month int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCode(ctx context.Context, cityCode int, year int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCodeStandard(ctx context.Context, cityCode int, year int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCodeISO8601(ctx context.Context, cityCode int, year int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCityName(ctx context.Context, cityName string, year int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCityNameStandard(ctx context.Context, cityName string, year int, lang string) (res []PrayTimeResponseDTO, err error)
+	GetYearlyByCityNameISO8601(ctx context.Context, cityName string, year int, lang string) (res []PrayTimeResponseDTO, err error)
 	CreatePrayTime(ctx context.Context, pray *PrayTime) (err error)
 	CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, cityCode int, year int, month int) (err error)
 }

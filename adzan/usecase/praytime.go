@@ -58,18 +58,13 @@ func NewPrayTimeUsecase(cityRepo domain.CityRepository, prayTimeRepo domain.Pray
 	}
 }
 
-func (p *prayTimeUsecase) GetTodayByCode(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+func (p *prayTimeUsecase) getDaily(ctx context.Context, city domain.City, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
 	datetime, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		return
 	}
 
-	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
-	if err != nil {
-		return
-	}
-
-	prayTime, err := p.prayTimeRepo.GetPrayTime(ctx, cityCode, datetime.Format("20060102"))
+	prayTime, err := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
 	if err != nil {
 		return
 	}
@@ -109,52 +104,603 @@ func (p *prayTimeUsecase) GetTodayByCode(ctx context.Context, cityCode int, date
 	return
 }
 
-func (p *prayTimeUsecase) GetTodayByCodeStandard(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
-	res, err = p.GetTodayByCode(ctx, cityCode, date, lang)
-	if err != nil {
-		return
+func (p *prayTimeUsecase) getMonthly(ctx context.Context, city domain.City, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	datetime := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
+	dayOfMonth := datetime.AddDate(0, 1, -1).Day()
+
+	for i := 0; i < dayOfMonth; i++ {
+		prayTime, errBlock := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
+		if errBlock != nil {
+			err = errBlock
+			return
+		}
+		var day string
+		switch lang {
+		case "en":
+			day = domain.DayEn[datetime.Weekday()]
+		case "id":
+			day = domain.DayId[datetime.Weekday()]
+		case "ar":
+			day = domain.DayAr[datetime.Weekday()]
+		}
+		result := domain.PrayTimeResponseDTO{
+			Location: domain.CityResponseDTO{
+				CityCode:  city.Code,
+				City:      city.City,
+				Latitude:  city.Latitude,
+				Longitude: city.Longitude,
+				Timezone:  city.Timezone,
+			},
+			Date: domain.DateResponseDTO{
+				Day:  day,
+				Date: datetime.Format("2006-01-02"),
+			},
+			Times: domain.TimeResponseDTO{
+				Imsak:    prayTime.Imsak,
+				Fajr:     prayTime.Fajr,
+				Sunrise:  prayTime.Sunrise,
+				Dhuhr:    prayTime.Dhuhr,
+				Asr:      prayTime.Asr,
+				Maghrib:  prayTime.Maghrib,
+				Isha:     prayTime.Isha,
+				Midnight: prayTime.Midnight,
+			},
+		}
+		res = append(res, result)
+		datetime = datetime.AddDate(0, 0, 1)
 	}
-	timeImsak := time.Unix(int64(res.Times.Imsak.(int)), 0)
-	res.Times.Imsak = timeImsak.Format("15:04")
-	timeFajr := time.Unix(int64(res.Times.Fajr.(int)), 0)
-	res.Times.Fajr = timeFajr.Format("15:04")
-	timeSunrise := time.Unix(int64(res.Times.Sunrise.(int)), 0)
-	res.Times.Sunrise = timeSunrise.Format("15:04")
-	timeDhuhr := time.Unix(int64(res.Times.Dhuhr.(int)), 0)
-	res.Times.Dhuhr = timeDhuhr.Format("15:04")
-	timeAsr := time.Unix(int64(res.Times.Asr.(int)), 0)
-	res.Times.Asr = timeAsr.Format("15:04")
-	timeMaghrib := time.Unix(int64(res.Times.Maghrib.(int)), 0)
-	res.Times.Maghrib = timeMaghrib.Format("15:04")
-	timeIsha := time.Unix(int64(res.Times.Isha.(int)), 0)
-	res.Times.Isha = timeIsha.Format("15:04")
-	timeMidnight := time.Unix(int64(res.Times.Midnight.(int)), 0)
-	res.Times.Midnight = timeMidnight.Format("15:04")
 
 	return
 }
 
-func (p *prayTimeUsecase) GetTodayByCodeISO8601(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
-	res, err = p.GetTodayByCode(ctx, cityCode, date, lang)
+func (p *prayTimeUsecase) getYearly(ctx context.Context, city domain.City, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	datetime := time.Date(year, 1, 1, 0, 0, 0, 0, time.Local)
+	firstDayOfMonth := datetime
+
+	for i := 0; i < 12; i++ {
+		firstDayOfMonth = firstDayOfMonth.AddDate(0, 1, -1)
+		dayOfMonth := firstDayOfMonth.Day()
+		for j := 0; j < dayOfMonth; j++ {
+			prayTime, errBlock := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
+			if errBlock != nil {
+				err = errBlock
+				return
+			}
+			var day string
+			switch lang {
+			case "en":
+				day = domain.DayEn[datetime.Weekday()]
+			case "id":
+				day = domain.DayId[datetime.Weekday()]
+			case "ar":
+				day = domain.DayAr[datetime.Weekday()]
+			}
+			result := domain.PrayTimeResponseDTO{
+				Location: domain.CityResponseDTO{
+					CityCode:  city.Code,
+					City:      city.City,
+					Latitude:  city.Latitude,
+					Longitude: city.Longitude,
+					Timezone:  city.Timezone,
+				},
+				Date: domain.DateResponseDTO{
+					Day:  day,
+					Date: datetime.Format("2006-01-02"),
+				},
+				Times: domain.TimeResponseDTO{
+					Imsak:    prayTime.Imsak,
+					Fajr:     prayTime.Fajr,
+					Sunrise:  prayTime.Sunrise,
+					Dhuhr:    prayTime.Dhuhr,
+					Asr:      prayTime.Asr,
+					Maghrib:  prayTime.Maghrib,
+					Isha:     prayTime.Isha,
+					Midnight: prayTime.Midnight,
+				},
+			}
+			res = append(res, result)
+			datetime = datetime.AddDate(0, 0, 1)
+		}
+		firstDayOfMonth = firstDayOfMonth.AddDate(0, 0, 1)
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetDailyByCode(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
 	if err != nil {
 		return
 	}
+
+	return p.getDaily(ctx, city, date, lang)
+}
+
+func (p *prayTimeUsecase) GetDailyByCodeStandard(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetDailyByCode(ctx, cityCode, date, lang)
+	if err != nil {
+		return
+	}
+	switch res.Location.Timezone {
+	case 7:
+		loc = time.FixedZone("UTC+7", 7*60*60)
+	case 8:
+		loc = time.FixedZone("UTC+8", 8*60*60)
+	case 9:
+		loc = time.FixedZone("UTC+9", 9*60*60)
+	}
 	timeImsak := time.Unix(int64(res.Times.Imsak.(int)), 0)
-	res.Times.Imsak = timeImsak.Format(time.RFC3339)
+	res.Times.Imsak = timeImsak.In(loc).Format("15:04")
 	timeFajr := time.Unix(int64(res.Times.Fajr.(int)), 0)
-	res.Times.Fajr = timeFajr.Format(time.RFC3339)
+	res.Times.Fajr = timeFajr.In(loc).Format("15:04")
 	timeSunrise := time.Unix(int64(res.Times.Sunrise.(int)), 0)
-	res.Times.Sunrise = timeSunrise.Format(time.RFC3339)
+	res.Times.Sunrise = timeSunrise.In(loc).Format("15:04")
 	timeDhuhr := time.Unix(int64(res.Times.Dhuhr.(int)), 0)
-	res.Times.Dhuhr = timeDhuhr.Format(time.RFC3339)
+	res.Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
 	timeAsr := time.Unix(int64(res.Times.Asr.(int)), 0)
-	res.Times.Asr = timeAsr.Format(time.RFC3339)
+	res.Times.Asr = timeAsr.In(loc).Format("15:04")
 	timeMaghrib := time.Unix(int64(res.Times.Maghrib.(int)), 0)
-	res.Times.Maghrib = timeMaghrib.Format(time.RFC3339)
+	res.Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
 	timeIsha := time.Unix(int64(res.Times.Isha.(int)), 0)
-	res.Times.Isha = timeIsha.Format(time.RFC3339)
+	res.Times.Isha = timeIsha.In(loc).Format("15:04")
 	timeMidnight := time.Unix(int64(res.Times.Midnight.(int)), 0)
-	res.Times.Midnight = timeMidnight.Format(time.RFC3339)
+	res.Times.Midnight = timeMidnight.In(loc).Format("15:04")
+
+	return
+}
+
+func (p *prayTimeUsecase) GetDailyByCodeISO8601(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetDailyByCode(ctx, cityCode, date, lang)
+	if err != nil {
+		return
+	}
+	switch res.Location.Timezone {
+	case 7:
+		loc = time.FixedZone("UTC+7", 7*60*60)
+	case 8:
+		loc = time.FixedZone("UTC+8", 8*60*60)
+	case 9:
+		loc = time.FixedZone("UTC+9", 9*60*60)
+	}
+	timeImsak := time.Unix(int64(res.Times.Imsak.(int)), 0)
+	res.Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+	timeFajr := time.Unix(int64(res.Times.Fajr.(int)), 0)
+	res.Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+	timeSunrise := time.Unix(int64(res.Times.Sunrise.(int)), 0)
+	res.Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+	timeDhuhr := time.Unix(int64(res.Times.Dhuhr.(int)), 0)
+	res.Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+	timeAsr := time.Unix(int64(res.Times.Asr.(int)), 0)
+	res.Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+	timeMaghrib := time.Unix(int64(res.Times.Maghrib.(int)), 0)
+	res.Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+	timeIsha := time.Unix(int64(res.Times.Isha.(int)), 0)
+	res.Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+	timeMidnight := time.Unix(int64(res.Times.Midnight.(int)), 0)
+	res.Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+
+	return
+}
+
+func (p *prayTimeUsecase) GetDailyByCityName(ctx context.Context, cityName string, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityName(ctx, cityName)
+	if err != nil {
+		return
+	}
+
+	return p.getDaily(ctx, city, date, lang)
+}
+
+func (p *prayTimeUsecase) GetDailyByCityNameStandard(ctx context.Context, cityName string, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetDailyByCityName(ctx, cityName, date, lang)
+	if err != nil {
+		return
+	}
+	switch res.Location.Timezone {
+	case 7:
+		loc = time.FixedZone("UTC+7", 7*60*60)
+	case 8:
+		loc = time.FixedZone("UTC+8", 8*60*60)
+	case 9:
+		loc = time.FixedZone("UTC+9", 9*60*60)
+	}
+	timeImsak := time.Unix(int64(res.Times.Imsak.(int)), 0)
+	res.Times.Imsak = timeImsak.In(loc).Format("15:04")
+	timeFajr := time.Unix(int64(res.Times.Fajr.(int)), 0)
+	res.Times.Fajr = timeFajr.In(loc).Format("15:04")
+	timeSunrise := time.Unix(int64(res.Times.Sunrise.(int)), 0)
+	res.Times.Sunrise = timeSunrise.In(loc).Format("15:04")
+	timeDhuhr := time.Unix(int64(res.Times.Dhuhr.(int)), 0)
+	res.Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
+	timeAsr := time.Unix(int64(res.Times.Asr.(int)), 0)
+	res.Times.Asr = timeAsr.In(loc).Format("15:04")
+	timeMaghrib := time.Unix(int64(res.Times.Maghrib.(int)), 0)
+	res.Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
+	timeIsha := time.Unix(int64(res.Times.Isha.(int)), 0)
+	res.Times.Isha = timeIsha.In(loc).Format("15:04")
+	timeMidnight := time.Unix(int64(res.Times.Midnight.(int)), 0)
+	res.Times.Midnight = timeMidnight.In(loc).Format("15:04")
+
+	return
+}
+
+func (p *prayTimeUsecase) GetDailyByCityNameISO8601(ctx context.Context, cityName string, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetDailyByCityName(ctx, cityName, date, lang)
+	if err != nil {
+		return
+	}
+	switch res.Location.Timezone {
+	case 7:
+		loc = time.FixedZone("UTC+7", 7*60*60)
+	case 8:
+		loc = time.FixedZone("UTC+8", 8*60*60)
+	case 9:
+		loc = time.FixedZone("UTC+9", 9*60*60)
+	}
+	timeImsak := time.Unix(int64(res.Times.Imsak.(int)), 0)
+	res.Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+	timeFajr := time.Unix(int64(res.Times.Fajr.(int)), 0)
+	res.Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+	timeSunrise := time.Unix(int64(res.Times.Sunrise.(int)), 0)
+	res.Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+	timeDhuhr := time.Unix(int64(res.Times.Dhuhr.(int)), 0)
+	res.Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+	timeAsr := time.Unix(int64(res.Times.Asr.(int)), 0)
+	res.Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+	timeMaghrib := time.Unix(int64(res.Times.Maghrib.(int)), 0)
+	res.Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+	timeIsha := time.Unix(int64(res.Times.Isha.(int)), 0)
+	res.Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+	timeMidnight := time.Unix(int64(res.Times.Midnight.(int)), 0)
+	res.Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+
+	return
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCode(ctx context.Context, cityCode int, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
+	if err != nil {
+		return
+	}
+
+	return p.getMonthly(ctx, city, year, month, lang)
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCodeStandard(ctx context.Context, cityCode int, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetMonthlyByCode(ctx, cityCode, year, month, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format("15:04")
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format("15:04")
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format("15:04")
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format("15:04")
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format("15:04")
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format("15:04")
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCodeISO8601(ctx context.Context, cityCode int, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetMonthlyByCode(ctx, cityCode, year, month, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCityName(ctx context.Context, cityName string, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityName(ctx, cityName)
+	if err != nil {
+		return
+	}
+
+	return p.getMonthly(ctx, city, year, month, lang)
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCityNameStandard(ctx context.Context, cityName string, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetMonthlyByCityName(ctx, cityName, year, month, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format("15:04")
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format("15:04")
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format("15:04")
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format("15:04")
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format("15:04")
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format("15:04")
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetMonthlyByCityNameISO8601(ctx context.Context, cityName string, year int, month int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetMonthlyByCityName(ctx, cityName, year, month, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetYearlyByCode(ctx context.Context, cityCode int, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
+	if err != nil {
+		return
+	}
+
+	return p.getYearly(ctx, city, year, lang)
+}
+
+func (p *prayTimeUsecase) GetYearlyByCodeStandard(ctx context.Context, cityCode int, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetYearlyByCode(ctx, cityCode, year, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format("15:04")
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format("15:04")
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format("15:04")
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format("15:04")
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format("15:04")
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format("15:04")
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetYearlyByCodeISO8601(ctx context.Context, cityCode int, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetYearlyByCode(ctx, cityCode, year, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetYearlyByCityName(ctx context.Context, cityName string, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	city, err := p.cityRepo.GetByCityName(ctx, cityName)
+	if err != nil {
+		return
+	}
+
+	return p.getYearly(ctx, city, year, lang)
+}
+
+func (p *prayTimeUsecase) GetYearlyByCityNameStandard(ctx context.Context, cityName string, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetYearlyByCityName(ctx, cityName, year, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format("15:04")
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format("15:04")
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format("15:04")
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format("15:04")
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format("15:04")
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format("15:04")
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format("15:04")
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format("15:04")
+	}
+
+	return
+}
+
+func (p *prayTimeUsecase) GetYearlyByCityNameISO8601(ctx context.Context, cityName string, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
+	var loc *time.Location
+
+	res, err = p.GetYearlyByCityName(ctx, cityName, year, lang)
+	if err != nil {
+		return
+	}
+
+	for idx, _ := range res {
+		switch res[idx].Location.Timezone {
+		case 7:
+			loc = time.FixedZone("UTC+7", 7*60*60)
+		case 8:
+			loc = time.FixedZone("UTC+8", 8*60*60)
+		case 9:
+			loc = time.FixedZone("UTC+9", 9*60*60)
+		}
+		timeImsak := time.Unix(int64(res[idx].Times.Imsak.(int)), 0)
+		res[idx].Times.Imsak = timeImsak.In(loc).Format(time.RFC3339)
+		timeFajr := time.Unix(int64(res[idx].Times.Fajr.(int)), 0)
+		res[idx].Times.Fajr = timeFajr.In(loc).Format(time.RFC3339)
+		timeSunrise := time.Unix(int64(res[idx].Times.Sunrise.(int)), 0)
+		res[idx].Times.Sunrise = timeSunrise.In(loc).Format(time.RFC3339)
+		timeDhuhr := time.Unix(int64(res[idx].Times.Dhuhr.(int)), 0)
+		res[idx].Times.Dhuhr = timeDhuhr.In(loc).Format(time.RFC3339)
+		timeAsr := time.Unix(int64(res[idx].Times.Asr.(int)), 0)
+		res[idx].Times.Asr = timeAsr.In(loc).Format(time.RFC3339)
+		timeMaghrib := time.Unix(int64(res[idx].Times.Maghrib.(int)), 0)
+		res[idx].Times.Maghrib = timeMaghrib.In(loc).Format(time.RFC3339)
+		timeIsha := time.Unix(int64(res[idx].Times.Isha.(int)), 0)
+		res[idx].Times.Isha = timeIsha.In(loc).Format(time.RFC3339)
+		timeMidnight := time.Unix(int64(res[idx].Times.Midnight.(int)), 0)
+		res[idx].Times.Midnight = timeMidnight.In(loc).Format(time.RFC3339)
+	}
 
 	return
 }
@@ -184,13 +730,12 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 	req.Header.SetMethod(fiber.MethodGet)
 	req.Header.SetContentType("application/json")
 	req.SetRequestURI("https://api.myquran.com/v1/sholat/jadwal/" + strconv.FormatInt(int64(city.IDmyQuran), 10) + "/" + strconv.FormatInt(int64(year), 10) + "/" + fmt.Sprintf("%02d", month))
+	// log.Debug("https://api.myquran.com/v1/sholat/jadwal/" + strconv.FormatInt(int64(city.IDmyQuran), 10) + "/" + strconv.FormatInt(int64(year), 10) + "/" + fmt.Sprintf("%02d", month))
 	if err = a.Parse(); err != nil {
 		return
 	}
 
 	code, body, errs := a.Bytes()
-	// log.Debug(code)
-	// log.Debug(string(body))
 	log.Debug(errs)
 
 	var response apiMyQuranMonthlyResponse

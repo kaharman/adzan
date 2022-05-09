@@ -42,6 +42,7 @@ type CityRepository interface {
 	Search(ctx context.Context, offset, limit int64, sort, province string, desc string) (res []City, err error)
 	GetByLatLong(ctx context.Context, latitude float32, longitude float32) (res City, err error)
 	GetByCityCode(ctx context.Context, cityCode int) (res City, err error)
+	GetByCityName(ctx context.Context, cityName string) (res City, err error)
 	Create(ctx context.Context, city *City) (err error)
 	Update(ctx context.Context, city *City) (err error)
 	Delete(ctx context.Context, CityCode string) (err error)

@@ -3,6 +3,7 @@ package redis
 import (
 	"adzan/domain"
 	"context"
+	"errors"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
@@ -47,6 +48,10 @@ func (r *redisCityRepository) GetByLatLong(ctx context.Context, latitude float32
 	if err != nil {
 		return
 	}
+	if city.Timezone == 0 {
+		err = errors.New("redis: nil")
+		return
+	}
 	cityCode, err := strconv.ParseInt(location[0].Name, 10, 64)
 	if err != nil {
 		return
@@ -70,12 +75,47 @@ func (r *redisCityRepository) GetByCityCode(ctx context.Context, cityCode int) (
 	if err != nil {
 		return
 	}
+	if city.Timezone == 0 {
+		err = errors.New("redis: nil")
+		return
+	}
 	pos, err := r.Conn.GeoPos(ctx, "city_locations", strconv.FormatInt(int64(cityCode), 10)).Result()
 	if err != nil {
 		return
 	}
 	res = domain.City{
 		Code:      cityCode,
+		Province:  city.Province,
+		City:      city.City,
+		Latitude:  float32(pos[0].Latitude),
+		Longitude: float32(pos[0].Longitude),
+		Timezone:  city.Timezone,
+		IDmyQuran: city.IDmyQuran,
+	}
+
+	return
+}
+
+func (r *redisCityRepository) GetByCityName(ctx context.Context, cityName string) (res domain.City, err error) {
+	var city city
+	cityCode, err := r.Conn.ZScore(ctx, "cities", cityName).Result()
+	if err != nil {
+		return
+	}
+	err = r.Conn.HGetAll(ctx, "cities:"+strconv.FormatInt(int64(cityCode), 10)).Scan(&city)
+	if err != nil {
+		return
+	}
+	if city.Timezone == 0 {
+		err = errors.New("redis: nil")
+		return
+	}
+	pos, err := r.Conn.GeoPos(ctx, "city_locations", strconv.FormatInt(int64(cityCode), 10)).Result()
+	if err != nil {
+		return
+	}
+	res = domain.City{
+		Code:      int(cityCode),
 		Province:  city.Province,
 		City:      city.City,
 		Latitude:  float32(pos[0].Latitude),

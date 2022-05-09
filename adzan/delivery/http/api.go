@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 type AdzanHandler struct {
@@ -42,6 +43,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
 	}
 	cityCodeStr := c.Query("city_code", "")
+	cityName := c.Query("city", "")
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -52,19 +54,71 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 
 		switch format {
 		case "standard":
-			response, err = adzan.PrayTimeUsecase.GetTodayByCodeStandard(c.Context(), int(cityCode), today, language)
+			response, err = adzan.PrayTimeUsecase.GetDailyByCodeStandard(c.Context(), int(cityCode), today, language)
 			if err != nil {
-				return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
 			}
 		case "unixtime":
-			response, err = adzan.PrayTimeUsecase.GetTodayByCode(c.Context(), int(cityCode), today, language)
+			response, err = adzan.PrayTimeUsecase.GetDailyByCode(c.Context(), int(cityCode), today, language)
 			if err != nil {
-				return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
 			}
 		case "iso8601":
-			response, err = adzan.PrayTimeUsecase.GetTodayByCodeISO8601(c.Context(), int(cityCode), today, language)
+			response, err = adzan.PrayTimeUsecase.GetDailyByCodeISO8601(c.Context(), int(cityCode), today, language)
 			if err != nil {
-				return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	} else if cityName != "" {
+		today := time.Now().Format("2006-01-02")
+		var response domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityNameStandard(c.Context(), cityName, today, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityName(c.Context(), cityName, today, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityNameISO8601(c.Context(), cityName, today, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
 			}
 		}
 		return helper.HttpSuccess(c, response)
@@ -74,15 +128,326 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 }
 
 func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
-	return
+	var cityCode int64
+
+	dateStr := c.Query("date")
+	if dateStr == "" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid date", nil)
+	}
+	_, err = time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid date", nil)
+	}
+	format := c.Query("format", "standard")
+	if format != "standard" && format != "unixtime" && format != "iso8601" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid format", nil)
+	}
+	language := c.Query("language", "en")
+	if language != "en" && language != "id" && language != "ar" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
+	}
+	cityCodeStr := c.Query("city_code", "")
+	cityName := c.Query("city", "")
+	if cityCodeStr != "" {
+		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
+		if err != nil {
+			return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+		}
+		var response domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCodeStandard(c.Context(), int(cityCode), dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCode(c.Context(), int(cityCode), dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCodeISO8601(c.Context(), int(cityCode), dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	} else if cityName != "" {
+		var response domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityNameStandard(c.Context(), cityName, dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityName(c.Context(), cityName, dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetDailyByCityNameISO8601(c.Context(), cityName, dateStr, language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	}
+
+	return helper.HttpError(c, fiber.StatusBadRequest, "Parameters required", nil)
 }
 
 func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
-	return
+	var cityCode int64
+
+	yearStr := c.Query("year")
+	if yearStr == "" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	year, err := strconv.ParseInt(yearStr, 10, 64)
+	if err != nil {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	if year < 2022 {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	monthStr := c.Query("month")
+	if monthStr == "" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+	month, err := strconv.ParseInt(monthStr, 10, 64)
+	if err != nil {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+	if month < 1 || month > 12 {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid month", nil)
+	}
+	format := c.Query("format", "standard")
+	if format != "standard" && format != "unixtime" && format != "iso8601" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid format", nil)
+	}
+	language := c.Query("language", "en")
+	if language != "en" && language != "id" && language != "ar" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
+	}
+	cityCodeStr := c.Query("city_code", "")
+	cityName := c.Query("city", "")
+	if cityCodeStr != "" {
+		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
+		if err != nil {
+			return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+		}
+		var response []domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCodeStandard(c.Context(), int(cityCode), int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCode(c.Context(), int(cityCode), int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCodeISO8601(c.Context(), int(cityCode), int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	} else if cityName != "" {
+		var response []domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCityNameStandard(c.Context(), cityName, int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCityName(c.Context(), cityName, int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetMonthlyByCityNameISO8601(c.Context(), cityName, int(year), int(month), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	}
+
+	return helper.HttpError(c, fiber.StatusBadRequest, "Parameters required", nil)
 }
 
 func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
-	return
+	var cityCode int64
+
+	yearStr := c.Query("year")
+	if yearStr == "" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	year, err := strconv.ParseInt(yearStr, 10, 64)
+	if err != nil {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	if year < 2022 {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid year", nil)
+	}
+	format := c.Query("format", "standard")
+	if format != "standard" && format != "unixtime" && format != "iso8601" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid format", nil)
+	}
+	language := c.Query("language", "en")
+	if language != "en" && language != "id" && language != "ar" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
+	}
+	cityCodeStr := c.Query("city_code", "")
+	cityName := c.Query("city", "")
+	if cityCodeStr != "" {
+		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
+		if err != nil {
+			return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+		}
+		var response []domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCodeStandard(c.Context(), int(cityCode), int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCode(c.Context(), int(cityCode), int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCodeISO8601(c.Context(), int(cityCode), int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	} else if cityName != "" {
+		var response []domain.PrayTimeResponseDTO
+
+		switch format {
+		case "standard":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCityNameStandard(c.Context(), cityName, int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "unixtime":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCityName(c.Context(), cityName, int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		case "iso8601":
+			response, err = adzan.PrayTimeUsecase.GetYearlyByCityNameISO8601(c.Context(), cityName, int(year), language)
+			if err != nil {
+				if err.Error() == "redis: nil" {
+					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
+				} else {
+					log.Debug(err)
+					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+				}
+			}
+		}
+		return helper.HttpSuccess(c, response)
+	}
+
+	return helper.HttpError(c, fiber.StatusBadRequest, "Parameters required", nil)
 }
 
 func (adzan *AdzanHandler) CreatePrayTimeMonthlyAPIMyQuran(c *fiber.Ctx) (err error) {
