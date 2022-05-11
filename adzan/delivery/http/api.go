@@ -13,13 +13,15 @@ import (
 type AdzanHandler struct {
 	PrayTimeUsecase domain.PrayTimeUsecase
 	CityUsecase     domain.CityUsecase
+	HijriUsecase    domain.HijriUsecase
 }
 
-func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.CityUsecase) {
+func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.CityUsecase, hijri domain.HijriUsecase) {
 	// middleware := &MissIndonesiaMiddleware{}
 	handler := &AdzanHandler{
 		PrayTimeUsecase: prayTime,
 		CityUsecase:     city,
+		HijriUsecase:    hijri,
 	}
 
 	app.Get("/today", handler.GetTodayPrayTime)
@@ -30,6 +32,8 @@ func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.City
 
 	app.Get("/city", handler.GetCity)
 	app.Get("/city/search", handler.SearchCity)
+
+	app.Get("/hijri", handler.HijriToday)
 }
 
 func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
@@ -533,6 +537,20 @@ func (adzan *AdzanHandler) SearchCity(c *fiber.Ctx) (err error) {
 	}
 	if len(response) == 0 {
 		return helper.HttpError(c, fiber.StatusNotFound, "Not found", nil)
+	}
+
+	return helper.HttpSuccess(c, response)
+}
+
+func (adzan *AdzanHandler) HijriToday(c *fiber.Ctx) (err error) {
+	language := c.Query("language", "en")
+	if language != "en" && language != "id" && language != "ar" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
+	}
+
+	response, err := adzan.HijriUsecase.GregorianToHijri(c.Context(), time.Now(), language)
+	if err != nil {
+		return
 	}
 
 	return helper.HttpSuccess(c, response)

@@ -58,6 +58,7 @@ message CityResponse {
     string city = 2;
     float latitude = 3;
     float longitude = 4;
+    int32 timezone = 5;
 }
 
 message CitySearchRequest {
@@ -95,7 +96,7 @@ message HijriRequest {
 }
 
 message HijriResponse {
-    int32 day_of_week = 1;
+    int32 day = 1;
     int32 month = 2;
     int32 year = 3;
     string month_name = 4;

@@ -2,6 +2,7 @@ package main
 
 import (
 	_DeliveryHTTPAdzan "adzan/adzan/delivery/http"
+	_RepositoryLibAdzan "adzan/adzan/repository/lib"
 	_RepositoryRedisAdzan "adzan/adzan/repository/redis"
 	_UsecaseAdzan "adzan/adzan/usecase"
 	"adzan/config"
@@ -160,9 +161,11 @@ func main() {
 	_DeliveryHTTPAdzan.RouterGRPC(app)
 	prayTimeRepo := _RepositoryRedisAdzan.NewRedisPrayTimeRepository(dbRedis)
 	cityRepo := _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
+	hijriRepo := _RepositoryLibAdzan.NewLibHijriRepository()
 	prayTimeUsecase := _UsecaseAdzan.NewPrayTimeUsecase(cityRepo, prayTimeRepo)
 	cityUsecase := _UsecaseAdzan.NewCityUsecase(cityRepo)
-	_DeliveryHTTPAdzan.RouterAPI(app, prayTimeUsecase, cityUsecase)
+	hijriUsecase := _UsecaseAdzan.NewHijriUsecase(hijriRepo)
+	_DeliveryHTTPAdzan.RouterAPI(app, prayTimeUsecase, cityUsecase, hijriUsecase)
 
 	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {
 		log.Fatal(err)
