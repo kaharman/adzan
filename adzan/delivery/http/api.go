@@ -29,6 +29,7 @@ func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.City
 	app.Post("/apimyquranmonthly", handler.CreatePrayTimeMonthlyAPIMyQuran)
 
 	app.Get("/city", handler.GetCity)
+	app.Get("/city/search", handler.SearchCity)
 }
 
 func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
@@ -518,4 +519,21 @@ func (adzan *AdzanHandler) GetCity(c *fiber.Ctx) (err error) {
 	}
 
 	return helper.HttpError(c, fiber.StatusBadRequest, "Parameters required", nil)
+}
+
+func (adzan *AdzanHandler) SearchCity(c *fiber.Ctx) (err error) {
+	keyword := c.Query("keyword", "")
+	if keyword == "" {
+		return helper.HttpError(c, fiber.StatusBadRequest, "Keyword cannot be empty", nil)
+	}
+
+	response, err := adzan.CityUsecase.Search(c.Context(), keyword)
+	if err != nil {
+		return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
+	}
+	if len(response) == 0 {
+		return helper.HttpError(c, fiber.StatusNotFound, "Not found", nil)
+	}
+
+	return helper.HttpSuccess(c, response)
 }

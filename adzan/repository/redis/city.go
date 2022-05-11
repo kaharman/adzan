@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -24,7 +25,27 @@ func NewRedisCityRepository(Conn *redis.Client) domain.CityRepository {
 	return &redisCityRepository{Conn}
 }
 
-func (r *redisCityRepository) Search(ctx context.Context, offset, limit int64, sort, province string, desc string) (res []domain.City, err error) {
+func (r *redisCityRepository) Search(ctx context.Context, keyword string) (res []domain.City, err error) {
+	keys, _, err := r.Conn.ZScan(ctx, "cities", 0, "*"+strings.ToUpper(keyword)+"*", 1000).Result()
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(keys); i = i + 2 {
+		// log.Debug(keys[i])
+		// log.Debug(keys[i+1])
+		code, err := strconv.ParseInt(keys[i+1], 10, 64)
+		if err != nil {
+			continue
+		}
+
+		city, err := r.GetByCityCode(ctx, int(code))
+		if err != nil {
+			continue
+		}
+		res = append(res, city)
+	}
+
 	return
 }
 

@@ -46,3 +46,21 @@ func (c *cityUsecase) GetByCityCode(ctx context.Context, cityCode int) (res doma
 
 	return
 }
+
+func (c *cityUsecase) Search(ctx context.Context, keyword string) (res []domain.CityResponseDTO, err error) {
+	cities, err := c.cityRepo.Search(ctx, keyword)
+	if err != nil {
+		return
+	}
+	for _, city := range cities {
+		res = append(res, domain.CityResponseDTO{
+			CityCode:  city.Code,
+			City:      city.City,
+			Latitude:  city.Latitude,
+			Longitude: city.Longitude,
+			Timezone:  city.Timezone,
+		})
+	}
+
+	return
+}
