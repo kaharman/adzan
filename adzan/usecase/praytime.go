@@ -58,13 +58,55 @@ func NewPrayTimeUsecase(cityRepo domain.CityRepository, prayTimeRepo domain.Pray
 	}
 }
 
+func getTimeLocation(timezone int) *time.Location {
+	switch timezone {
+	case 7:
+		return time.FixedZone("UTC+7", 7*60*60)
+	case 8:
+		return time.FixedZone("UTC+8", 8*60*60)
+	case 9:
+		return time.FixedZone("UTC+9", 9*60*60)
+	default:
+		return time.FixedZone("UTC+7", 7*60*60)
+	}
+}
+
+func parsePrayerTimeToUnix(year int, month time.Month, day int, timeStr string, loc *time.Location, isMidnight bool, maghribHour int) int {
+	t, err := time.Parse("15:04", timeStr)
+	if err != nil {
+		return 0
+	}
+	targetDay := day
+	if isMidnight && t.Hour() < maghribHour {
+		targetDay = day + 1
+	}
+	dt := time.Date(year, month, targetDay, t.Hour(), t.Minute(), 0, 0, loc)
+	return int(dt.Unix())
+}
+
+func buildTimeResponseDTO(year int, month time.Month, day int, schedule domain.PrayTimeSchedule, loc *time.Location) domain.TimeResponseDTO {
+	maghribTime, _ := time.Parse("15:04", schedule.Maghrib)
+	maghribHour := maghribTime.Hour()
+
+	return domain.TimeResponseDTO{
+		Imsak:    parsePrayerTimeToUnix(year, month, day, schedule.Imsak, loc, false, 0),
+		Fajr:     parsePrayerTimeToUnix(year, month, day, schedule.Fajr, loc, false, 0),
+		Sunrise:  parsePrayerTimeToUnix(year, month, day, schedule.Sunrise, loc, false, 0),
+		Dhuhr:    parsePrayerTimeToUnix(year, month, day, schedule.Dhuhr, loc, false, 0),
+		Asr:      parsePrayerTimeToUnix(year, month, day, schedule.Asr, loc, false, 0),
+		Maghrib:  parsePrayerTimeToUnix(year, month, day, schedule.Maghrib, loc, false, 0),
+		Isha:     parsePrayerTimeToUnix(year, month, day, schedule.Isha, loc, false, 0),
+		Midnight: parsePrayerTimeToUnix(year, month, day, schedule.Midnight, loc, true, maghribHour),
+	}
+}
+
 func (p *prayTimeUsecase) getDaily(ctx context.Context, city domain.City, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
 	datetime, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		return
 	}
 
-	prayTime, err := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
+	schedule, err := p.prayTimeRepo.GetPrayTime(ctx, city.Code, int(datetime.Month()), datetime.Day())
 	if err != nil {
 		return
 	}
@@ -77,6 +119,8 @@ func (p *prayTimeUsecase) getDaily(ctx context.Context, city domain.City, date s
 	case "ar":
 		day = domain.DayAr[datetime.Weekday()]
 	}
+
+	loc := getTimeLocation(city.Timezone)
 	res = domain.PrayTimeResponseDTO{
 		Location: domain.CityResponseDTO{
 			CityCode:  city.Code,
@@ -89,16 +133,7 @@ func (p *prayTimeUsecase) getDaily(ctx context.Context, city domain.City, date s
 			Day:  day,
 			Date: date,
 		},
-		Times: domain.TimeResponseDTO{
-			Imsak:    prayTime.Imsak,
-			Fajr:     prayTime.Fajr,
-			Sunrise:  prayTime.Sunrise,
-			Dhuhr:    prayTime.Dhuhr,
-			Asr:      prayTime.Asr,
-			Maghrib:  prayTime.Maghrib,
-			Isha:     prayTime.Isha,
-			Midnight: prayTime.Midnight,
-		},
+		Times: buildTimeResponseDTO(datetime.Year(), datetime.Month(), datetime.Day(), schedule, loc),
 	}
 
 	return
@@ -108,12 +143,22 @@ func (p *prayTimeUsecase) getMonthly(ctx context.Context, city domain.City, year
 	datetime := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	dayOfMonth := datetime.AddDate(0, 1, -1).Day()
 
+	schedules, errBlock := p.prayTimeRepo.GetMonthlyPrayTime(ctx, city.Code, month)
+	if errBlock != nil {
+		err = errBlock
+		return
+	}
+
+	loc := getTimeLocation(city.Timezone)
+
 	for i := 0; i < dayOfMonth; i++ {
-		prayTime, errBlock := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
-		if errBlock != nil {
-			err = errBlock
-			return
+		dayNum := datetime.Day()
+		schedule, ok := schedules[dayNum]
+		if !ok {
+			datetime = datetime.AddDate(0, 0, 1)
+			continue
 		}
+
 		var day string
 		switch lang {
 		case "en":
@@ -135,16 +180,7 @@ func (p *prayTimeUsecase) getMonthly(ctx context.Context, city domain.City, year
 				Day:  day,
 				Date: datetime.Format("2006-01-02"),
 			},
-			Times: domain.TimeResponseDTO{
-				Imsak:    prayTime.Imsak,
-				Fajr:     prayTime.Fajr,
-				Sunrise:  prayTime.Sunrise,
-				Dhuhr:    prayTime.Dhuhr,
-				Asr:      prayTime.Asr,
-				Maghrib:  prayTime.Maghrib,
-				Isha:     prayTime.Isha,
-				Midnight: prayTime.Midnight,
-			},
+			Times: buildTimeResponseDTO(year, time.Month(month), dayNum, schedule, loc),
 		}
 		res = append(res, result)
 		datetime = datetime.AddDate(0, 0, 1)
@@ -154,18 +190,26 @@ func (p *prayTimeUsecase) getMonthly(ctx context.Context, city domain.City, year
 }
 
 func (p *prayTimeUsecase) getYearly(ctx context.Context, city domain.City, year int, lang string) (res []domain.PrayTimeResponseDTO, err error) {
-	datetime := time.Date(year, 1, 1, 0, 0, 0, 0, time.Local)
-	firstDayOfMonth := datetime
+	loc := getTimeLocation(city.Timezone)
 
-	for i := 0; i < 12; i++ {
-		firstDayOfMonth = firstDayOfMonth.AddDate(0, 1, -1)
-		dayOfMonth := firstDayOfMonth.Day()
+	for m := 1; m <= 12; m++ {
+		datetime := time.Date(year, time.Month(m), 1, 0, 0, 0, 0, time.Local)
+		dayOfMonth := datetime.AddDate(0, 1, -1).Day()
+
+		schedules, errBlock := p.prayTimeRepo.GetMonthlyPrayTime(ctx, city.Code, m)
+		if errBlock != nil {
+			err = errBlock
+			return
+		}
+
 		for j := 0; j < dayOfMonth; j++ {
-			prayTime, errBlock := p.prayTimeRepo.GetPrayTime(ctx, city.Code, datetime.Format("20060102"))
-			if errBlock != nil {
-				err = errBlock
-				return
+			dayNum := datetime.Day()
+			schedule, ok := schedules[dayNum]
+			if !ok {
+				datetime = datetime.AddDate(0, 0, 1)
+				continue
 			}
+
 			var day string
 			switch lang {
 			case "en":
@@ -187,25 +231,16 @@ func (p *prayTimeUsecase) getYearly(ctx context.Context, city domain.City, year 
 					Day:  day,
 					Date: datetime.Format("2006-01-02"),
 				},
-				Times: domain.TimeResponseDTO{
-					Imsak:    prayTime.Imsak,
-					Fajr:     prayTime.Fajr,
-					Sunrise:  prayTime.Sunrise,
-					Dhuhr:    prayTime.Dhuhr,
-					Asr:      prayTime.Asr,
-					Maghrib:  prayTime.Maghrib,
-					Isha:     prayTime.Isha,
-					Midnight: prayTime.Midnight,
-				},
+				Times: buildTimeResponseDTO(year, time.Month(m), dayNum, schedule, loc),
 			}
 			res = append(res, result)
 			datetime = datetime.AddDate(0, 0, 1)
 		}
-		firstDayOfMonth = firstDayOfMonth.AddDate(0, 0, 1)
 	}
 
 	return
 }
+
 
 func (p *prayTimeUsecase) GetDailyByCode(ctx context.Context, cityCode int, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
 	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
@@ -706,23 +741,37 @@ func (p *prayTimeUsecase) GetYearlyByCityNameISO8601(ctx context.Context, cityNa
 }
 
 func (p *prayTimeUsecase) CreatePrayTime(ctx context.Context, prayTime *domain.PrayTime) (err error) {
-	return p.prayTimeRepo.Create(ctx, prayTime)
+	datetime, err := time.Parse("2006-01-02", prayTime.Date)
+	if err != nil {
+		datetime, err = time.Parse("20060102", prayTime.Date)
+		if err != nil {
+			return err
+		}
+	}
+	city, err := p.cityRepo.GetByCityCode(ctx, prayTime.CityCode)
+	if err != nil {
+		return err
+	}
+	loc := getTimeLocation(city.Timezone)
+
+	schedule := domain.PrayTimeSchedule{
+		Imsak:    time.Unix(int64(prayTime.Imsak), 0).In(loc).Format("15:04"),
+		Fajr:     time.Unix(int64(prayTime.Fajr), 0).In(loc).Format("15:04"),
+		Sunrise:  time.Unix(int64(prayTime.Sunrise), 0).In(loc).Format("15:04"),
+		Dhuhr:    time.Unix(int64(prayTime.Dhuhr), 0).In(loc).Format("15:04"),
+		Asr:      time.Unix(int64(prayTime.Asr), 0).In(loc).Format("15:04"),
+		Maghrib:  time.Unix(int64(prayTime.Maghrib), 0).In(loc).Format("15:04"),
+		Isha:     time.Unix(int64(prayTime.Isha), 0).In(loc).Format("15:04"),
+		Midnight: time.Unix(int64(prayTime.Midnight), 0).In(loc).Format("15:04"),
+	}
+
+	return p.prayTimeRepo.SaveDaily(ctx, prayTime.CityCode, int(datetime.Month()), datetime.Day(), &schedule)
 }
 
 func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, cityCode int, year int, month int) (err error) {
-	var loc *time.Location
-
 	city, err := p.cityRepo.GetByCityCode(ctx, cityCode)
 	if err != nil {
 		return
-	}
-	switch city.Timezone {
-	case 7:
-		loc = time.FixedZone("UTC+7", 7*60*60)
-	case 8:
-		loc = time.FixedZone("UTC+8", 8*60*60)
-	case 9:
-		loc = time.FixedZone("UTC+9", 9*60*60)
 	}
 
 	a := fiber.AcquireAgent()
@@ -730,7 +779,6 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 	req.Header.SetMethod(fiber.MethodGet)
 	req.Header.SetContentType("application/json")
 	req.SetRequestURI("https://api.myquran.com/v1/sholat/jadwal/" + strconv.FormatInt(int64(city.IDmyQuran), 10) + "/" + strconv.FormatInt(int64(year), 10) + "/" + fmt.Sprintf("%02d", month))
-	// log.Debug("https://api.myquran.com/v1/sholat/jadwal/" + strconv.FormatInt(int64(city.IDmyQuran), 10) + "/" + strconv.FormatInt(int64(year), 10) + "/" + fmt.Sprintf("%02d", month))
 	if err = a.Parse(); err != nil {
 		return
 	}
@@ -743,76 +791,45 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 		return
 	}
 	if code == fiber.StatusOK {
-		// log.Debug(response)
+		schedules := make(map[int]domain.PrayTimeSchedule, len(response.Data.Jadwal))
 		for _, pray := range response.Data.Jadwal {
-			date, err := time.Parse("2006-01-02", pray.Date)
-			if err != nil {
-				log.Error(err)
+			date, errDate := time.Parse("2006-01-02", pray.Date)
+			if errDate != nil {
+				log.Error(errDate)
 				continue
 			}
-			imsakTime, err := time.Parse("15:04", pray.Imsak)
-			if err != nil {
-				log.Error(err)
+
+			sunriseTime, errSunrise := time.Parse("15:04", pray.Terbit)
+			if errSunrise != nil {
+				log.Error(errSunrise)
 				continue
 			}
-			imsak := time.Date(date.Year(), date.Month(), date.Day(), imsakTime.Hour(), imsakTime.Minute(), 0, 0, loc)
-			fajrTime, err := time.Parse("15:04", pray.Subuh)
-			if err != nil {
-				log.Error(err)
+			maghribTime, errMaghrib := time.Parse("15:04", pray.Maghrib)
+			if errMaghrib != nil {
+				log.Error(errMaghrib)
 				continue
 			}
-			fajr := time.Date(date.Year(), date.Month(), date.Day(), fajrTime.Hour(), fajrTime.Minute(), 0, 0, loc)
-			sunriseTime, err := time.Parse("15:04", pray.Terbit)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			sunrise := time.Date(date.Year(), date.Month(), date.Day(), sunriseTime.Hour(), sunriseTime.Minute(), 0, 0, loc)
-			dhuhrTime, err := time.Parse("15:04", pray.Dzuhur)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			dhuhr := time.Date(date.Year(), date.Month(), date.Day(), dhuhrTime.Hour(), dhuhrTime.Minute(), 0, 0, loc)
-			asrTime, err := time.Parse("15:04", pray.Ashar)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			asr := time.Date(date.Year(), date.Month(), date.Day(), asrTime.Hour(), asrTime.Minute(), 0, 0, loc)
-			maghribTime, err := time.Parse("15:04", pray.Maghrib)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			maghrib := time.Date(date.Year(), date.Month(), date.Day(), maghribTime.Hour(), maghribTime.Minute(), 0, 0, loc)
-			ishaTime, err := time.Parse("15:04", pray.Isya)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			isha := time.Date(date.Year(), date.Month(), date.Day(), ishaTime.Hour(), ishaTime.Minute(), 0, 0, loc)
+
 			nextSunriseTime := sunriseTime.AddDate(0, 0, 1)
 			diff := nextSunriseTime.Sub(maghribTime).Seconds() / 2
-			prayTime := domain.PrayTime{
-				CityCode: cityCode,
-				Date:     date.Format("20060102"),
-				Imsak:    int(imsak.Unix()),
-				Fajr:     int(fajr.Unix()),
-				Sunrise:  int(sunrise.Unix()),
-				Dhuhr:    int(dhuhr.Unix()),
-				Asr:      int(asr.Unix()),
-				Maghrib:  int(maghrib.Unix()),
-				Isha:     int(isha.Unix()),
-				Midnight: int(maghrib.Add(time.Second * time.Duration(diff)).Unix()),
-			}
-			log.Debug(prayTime)
+			midnightTime := maghribTime.Add(time.Second * time.Duration(diff))
 
-			err = p.prayTimeRepo.Create(ctx, &prayTime)
-			if err != nil {
-				log.Error(err)
-				continue
+			schedule := domain.PrayTimeSchedule{
+				Imsak:    pray.Imsak,
+				Fajr:     pray.Subuh,
+				Sunrise:  pray.Terbit,
+				Dhuhr:    pray.Dzuhur,
+				Asr:      pray.Ashar,
+				Maghrib:  pray.Maghrib,
+				Isha:     pray.Isya,
+				Midnight: midnightTime.Format("15:04"),
 			}
+			schedules[date.Day()] = schedule
+		}
+
+		err = p.prayTimeRepo.SaveMonthly(ctx, cityCode, month, schedules)
+		if err != nil {
+			log.Error(err)
 		}
 	} else {
 		err = errors.New("response " + strconv.FormatInt(int64(code), 10))
@@ -820,3 +837,4 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 
 	return
 }
+

@@ -37,6 +37,17 @@ type PrayTimeResponseDTO struct {
 	Times    TimeResponseDTO `json:"times"`
 }
 
+type PrayTimeSchedule struct {
+	Imsak    string `json:"imsak"`
+	Fajr     string `json:"fajr"`
+	Sunrise  string `json:"sunrise"`
+	Dhuhr    string `json:"dhuhr"`
+	Asr      string `json:"asr"`
+	Maghrib  string `json:"maghrib"`
+	Isha     string `json:"isha"`
+	Midnight string `json:"midnight"`
+}
+
 type PrayTimeUsecase interface {
 	GetDailyByCode(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
 	GetDailyByCodeStandard(ctx context.Context, cityCode int, date string, lang string) (res PrayTimeResponseDTO, err error)
@@ -61,8 +72,11 @@ type PrayTimeUsecase interface {
 }
 
 type PrayTimeRepository interface {
-	GetPrayTime(ctx context.Context, cityCode int, date string) (res PrayTime, err error)
-	Create(ctx context.Context, prayTime *PrayTime) (err error)
-	Update(ctx context.Context, prayTime *PrayTime) (err error)
-	Delete(ctx context.Context, cityCode int, date string) (err error)
+	GetPrayTime(ctx context.Context, cityCode int, month int, day int) (res PrayTimeSchedule, err error)
+	GetMonthlyPrayTime(ctx context.Context, cityCode int, month int) (res map[int]PrayTimeSchedule, err error)
+	SaveDaily(ctx context.Context, cityCode int, month int, day int, schedule *PrayTimeSchedule) (err error)
+	SaveMonthly(ctx context.Context, cityCode int, month int, schedules map[int]PrayTimeSchedule) (err error)
+	Delete(ctx context.Context, cityCode int, month int, day int) (err error)
 }
+
+
