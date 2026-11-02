@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gemini
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+scratch/
+cmd/
+adzan-binary*
+data/

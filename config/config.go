@@ -121,7 +121,7 @@ type Redis struct {
 // }
 
 type CSV struct {
-	// Path is the directory location containing CSV files (cities.csv, praytimes.csv)
+	// Path is the directory location containing CSV files (cities.csv, praytimes/{city_code}.csv)
 	Path string `yaml:"path"`
 }
 

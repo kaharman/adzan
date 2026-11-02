@@ -7,7 +7,7 @@ data_source: redis
 
 # CSV storage configuration (used when data_source is 'csv')
 csv:
-  # Path to directory containing cities.csv and praytimes.csv
+  # Path to directory containing cities.csv and praytimes/ (e.g. ./data or /data in Docker)
   path: "./data"
 
 # HTTP Server configuration
