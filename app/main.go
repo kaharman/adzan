@@ -12,6 +12,7 @@ import (
 
 	"flag"
 	"net"
+	"strings"
 
 	"google.golang.org/grpc"
 
@@ -173,19 +174,37 @@ func main() {
 		AllowOrigins: viper.GetString("middleware.allows_origin"),
 	}))
 
-	// HTTP routing
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.Redirect("/web")
-	})
-	// TODO: routing here
-	_DeliveryHTTPAdzan.RouterWeb(app)
-	_DeliveryHTTPAdzan.RouterOpenAPI(app)
-	_DeliveryHTTPAdzan.RouterGRPC(app)
+	// HTTP routing with optional base_path prefix
+	basePath := strings.TrimSpace(viper.GetString("server.base_path"))
+	if basePath != "" && !strings.HasPrefix(basePath, "/") {
+		basePath = "/" + basePath
+	}
+	basePath = strings.TrimRight(basePath, "/")
+
+	var router fiber.Router = app
+	if basePath != "" {
+		log.Infof("Using server base_path routing prefix: %s", basePath)
+		router = app.Group(basePath)
+		app.Get("/", func(c *fiber.Ctx) error {
+			return c.Redirect(basePath + "/web")
+		})
+		router.Get("/", func(c *fiber.Ctx) error {
+			return c.Redirect(basePath + "/web")
+		})
+	} else {
+		app.Get("/", func(c *fiber.Ctx) error {
+			return c.Redirect("/web")
+		})
+	}
+
+	_DeliveryHTTPAdzan.RouterWeb(router)
+	_DeliveryHTTPAdzan.RouterOpenAPI(router)
+	_DeliveryHTTPAdzan.RouterGRPC(router)
 	hijriRepo := _RepositoryLibAdzan.NewLibHijriRepository()
 	prayTimeUsecase := _UsecaseAdzan.NewPrayTimeUsecase(cityRepo, prayTimeRepo)
 	cityUsecase := _UsecaseAdzan.NewCityUsecase(cityRepo)
 	hijriUsecase := _UsecaseAdzan.NewHijriUsecase(hijriRepo)
-	_DeliveryHTTPAdzan.RouterAPI(app, prayTimeUsecase, cityUsecase, hijriUsecase)
+	_DeliveryHTTPAdzan.RouterAPI(router, prayTimeUsecase, cityUsecase, hijriUsecase)
 
 
 	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {

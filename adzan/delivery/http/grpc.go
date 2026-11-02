@@ -14,8 +14,8 @@ import (
 //go:embed grpcdoc/*
 var gRPC embed.FS
 
-func RouterGRPC(app *fiber.App) {
-	app.Use("/grpcdoc", func(c *fiber.Ctx) error {
+func RouterGRPC(router fiber.Router) {
+	router.Use("/grpcdoc", func(c *fiber.Ctx) error {
 		originalUrl := utils.ImmutableString(c.OriginalURL())
 
 		// Check if the client is requesting a file extension

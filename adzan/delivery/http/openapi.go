@@ -14,8 +14,8 @@ import (
 //go:embed openapi/*
 var openAPI embed.FS
 
-func RouterOpenAPI(app *fiber.App) {
-	app.Use("/openapi", func(c *fiber.Ctx) error {
+func RouterOpenAPI(router fiber.Router) {
+	router.Use("/openapi", func(c *fiber.Ctx) error {
 		originalUrl := utils.ImmutableString(c.OriginalURL())
 
 		// Check if the client is requesting a file extension

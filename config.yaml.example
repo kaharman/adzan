@@ -12,6 +12,9 @@ csv:
 
 # HTTP Server configuration
 server:
+  # Prefix path for routing (e.g. /v1, /api). Leave empty "" for root routing.
+  base_path: ""
+
   # TCP Port to bind the HTTP Server to
   port: "4321"
 

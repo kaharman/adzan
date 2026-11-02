@@ -24,6 +24,9 @@ type Config struct {
 }
 
 type Server struct {
+	// BasePath is prefix path for routing (e.g. /v1, /api, or empty for root)
+	BasePath string `yaml:"base_path"`
+
 	// Port is the local machine TCP Port to bind the HTTP Server to
 	Port string `yaml:"port"`
 
@@ -132,6 +135,7 @@ type Middleware struct {
 // Default config
 var defaultConfig = &Config{
 	Server: Server{
+		BasePath:      "",
 		Port:          "4321",
 		Prefork:       false,
 		StrictRouting: false,

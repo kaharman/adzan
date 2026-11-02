@@ -16,7 +16,7 @@ type AdzanHandler struct {
 	HijriUsecase    domain.HijriUsecase
 }
 
-func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.CityUsecase, hijri domain.HijriUsecase) {
+func RouterAPI(router fiber.Router, prayTime domain.PrayTimeUsecase, city domain.CityUsecase, hijri domain.HijriUsecase) {
 	// middleware := &MissIndonesiaMiddleware{}
 	handler := &AdzanHandler{
 		PrayTimeUsecase: prayTime,
@@ -24,16 +24,16 @@ func RouterAPI(app *fiber.App, prayTime domain.PrayTimeUsecase, city domain.City
 		HijriUsecase:    hijri,
 	}
 
-	app.Get("/today", handler.GetTodayPrayTime)
-	app.Get("/daily", handler.GetPrayTimeDaily)
-	app.Get("/monthly", handler.GetPrayTimeMonthly)
-	app.Get("/yearly", handler.GetPrayTimeYearly)
-	app.Post("/apimyquranmonthly", handler.CreatePrayTimeMonthlyAPIMyQuran)
+	router.Get("/today", handler.GetTodayPrayTime)
+	router.Get("/daily", handler.GetPrayTimeDaily)
+	router.Get("/monthly", handler.GetPrayTimeMonthly)
+	router.Get("/yearly", handler.GetPrayTimeYearly)
+	router.Post("/apimyquranmonthly", handler.CreatePrayTimeMonthlyAPIMyQuran)
 
-	app.Get("/city", handler.GetCity)
-	app.Get("/city/search", handler.SearchCity)
+	router.Get("/city", handler.GetCity)
+	router.Get("/city/search", handler.SearchCity)
 
-	app.Get("/hijri", handler.HijriToday)
+	router.Get("/hijri", handler.HijriToday)
 }
 
 func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {

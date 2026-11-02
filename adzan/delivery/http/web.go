@@ -14,8 +14,8 @@ import (
 //go:embed web/*
 var web embed.FS
 
-func RouterWeb(app *fiber.App) {
-	app.Use("/web", func(c *fiber.Ctx) error {
+func RouterWeb(router fiber.Router) {
+	router.Use("/web", func(c *fiber.Ctx) error {
 		originalUrl := utils.ImmutableString(c.OriginalURL())
 
 		// Check if the client is requesting a file extension
