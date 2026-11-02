@@ -14,9 +14,11 @@ import (
 )
 
 type Config struct {
-	Server Server `yaml:"server"`
+	DataSource string `yaml:"data_source"`
+	Server     Server `yaml:"server"`
 	// MySQL      MySQL      `yaml:"mysql"`
 	Redis Redis `yaml:"redis"`
+	CSV   CSV   `yaml:"csv"`
 	// GRPC       GRPC       `yaml:"grpc"`
 	Middleware Middleware `yaml:"middleware"`
 }
@@ -118,6 +120,11 @@ type Redis struct {
 // 	MaxLifeDuration time.Duration `yaml:"max_life_duration"`
 // }
 
+type CSV struct {
+	// Path is the directory location containing CSV files (cities.csv, praytimes.csv)
+	Path string `yaml:"path"`
+}
+
 type Middleware struct {
 	AllowsOrigin string `yaml:"allows_origin"`
 }
@@ -155,6 +162,9 @@ var defaultConfig = &Config{
 		Password:      "",
 		Database:      0,
 	},
+	CSV: CSV{
+		Path: "./data",
+	},
 	// GRPC: GRPC{
 	// 	Host:            "localhost",
 	// 	Port:            "59090",
@@ -166,6 +176,7 @@ var defaultConfig = &Config{
 	Middleware: Middleware{
 		AllowsOrigin: "*",
 	},
+	DataSource: "redis",
 }
 
 func lookupEnv(parent string, rt reflect.Type, rv reflect.Value) {

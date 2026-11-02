@@ -2,10 +2,12 @@ package main
 
 import (
 	_DeliveryHTTPAdzan "adzan/adzan/delivery/http"
+	_RepositoryCSVAdzan "adzan/adzan/repository/csv"
 	_RepositoryLibAdzan "adzan/adzan/repository/lib"
 	_RepositoryRedisAdzan "adzan/adzan/repository/redis"
 	_UsecaseAdzan "adzan/adzan/usecase"
 	"adzan/config"
+	"adzan/domain"
 	"context"
 
 	"flag"
@@ -88,20 +90,40 @@ func main() {
 	// 	log.Warn(err)
 	// }
 
-	// Initialize Redis
-	dbRedis := redis.NewClient(&redis.Options{
-		Addr:     viper.GetString("redis.host") + ":" + viper.GetString("redis.port"),
-		Username: viper.GetString("redis.username"),
-		Password: viper.GetString("redis.password"),
-		DB:       viper.GetInt("redis.database"),
-		PoolSize: viper.GetInt("redis.max_connection"),
-	})
+	// Initialize Data Source (Redis or CSV)
+	var prayTimeRepo domain.PrayTimeRepository
+	var cityRepo domain.CityRepository
 
-	_, err := dbRedis.Ping(context.Background()).Result()
-	if err != nil {
-		log.Fatal(err)
+	dataSource := viper.GetString("data_source")
+	log.Infof("Configured data_source: %s", dataSource)
+
+	if dataSource == "csv" {
+		csvPath := viper.GetString("csv.path")
+		if csvPath == "" {
+			csvPath = "./data"
+		}
+		log.Infof("Initializing CSV Repository from path: %s", csvPath)
+		prayTimeRepo = _RepositoryCSVAdzan.NewCSVPrayTimeRepository(csvPath)
+		cityRepo = _RepositoryCSVAdzan.NewCSVCityRepository(csvPath)
+	} else {
+		// Initialize Redis
+		dbRedis := redis.NewClient(&redis.Options{
+			Addr:     viper.GetString("redis.host") + ":" + viper.GetString("redis.port"),
+			Username: viper.GetString("redis.username"),
+			Password: viper.GetString("redis.password"),
+			DB:       viper.GetInt("redis.database"),
+			PoolSize: viper.GetInt("redis.max_connection"),
+		})
+
+		_, err := dbRedis.Ping(context.Background()).Result()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Info("Redis connection established")
+
+		prayTimeRepo = _RepositoryRedisAdzan.NewRedisPrayTimeRepository(dbRedis)
+		cityRepo = _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
 	}
-	log.Info("Redis connection established")
 
 	// // Initialize gRPC pool
 	// conn := func() (client *grpc.ClientConn, err error) {
@@ -159,13 +181,12 @@ func main() {
 	_DeliveryHTTPAdzan.RouterWeb(app)
 	_DeliveryHTTPAdzan.RouterOpenAPI(app)
 	_DeliveryHTTPAdzan.RouterGRPC(app)
-	prayTimeRepo := _RepositoryRedisAdzan.NewRedisPrayTimeRepository(dbRedis)
-	cityRepo := _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
 	hijriRepo := _RepositoryLibAdzan.NewLibHijriRepository()
 	prayTimeUsecase := _UsecaseAdzan.NewPrayTimeUsecase(cityRepo, prayTimeRepo)
 	cityUsecase := _UsecaseAdzan.NewCityUsecase(cityRepo)
 	hijriUsecase := _UsecaseAdzan.NewHijriUsecase(hijriRepo)
 	_DeliveryHTTPAdzan.RouterAPI(app, prayTimeUsecase, cityUsecase, hijriUsecase)
+
 
 	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {
 		log.Fatal(err)

@@ -1,0 +1,62 @@
+# ==============================================================================
+# Adzan API Configuration Example
+# ==============================================================================
+
+# Data source provider (options: redis, csv)
+data_source: redis
+
+# CSV storage configuration (used when data_source is 'csv')
+csv:
+  # Path to directory containing cities.csv and praytimes.csv
+  path: "./data"
+
+# HTTP Server configuration
+server:
+  # TCP Port to bind the HTTP Server to
+  port: "4321"
+
+  # Spawn multiple Go processes listening on the same port
+  prefork: false
+
+  # Routing behavior
+  strict_routing: false
+  case_sensitive: false
+
+  # Request body limit in bytes (4MB = 4194304)
+  body_limit: 4194304
+
+  # Maximum number of concurrent connections
+  concurrency: 262144
+
+  # Log level (error, warning, info, debug)
+  log_level: debug
+
+  # gRPC server port
+  grpc_port: "54321"
+
+  # Server timeout configurations (in seconds)
+  timeout:
+    read: 5
+    write: 10
+    idle: 120
+
+# Redis configuration
+redis:
+  # Redis server address and port
+  host: "localhost"
+  port: "6379"
+
+  # Maximum pool connections
+  max_connection: 80
+
+  # Authentication
+  username: ""
+  password: ""
+
+  # Database index (default: 0)
+  database: 0
+
+# Middleware configuration
+middleware:
+  # CORS allowed origins
+  allows_origin: "*"
