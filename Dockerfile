@@ -25,8 +25,8 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /app/adzan /app/adzan
 
-# Directory for external data mount
-RUN mkdir -p /data
+# Copy default data directory into /data
+COPY data /data
 VOLUME ["/data"]
 
 # Default environment configuration for Docker
