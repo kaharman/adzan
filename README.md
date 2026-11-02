@@ -156,3 +156,10 @@ http://localhost:4321/openapi/
 ## ⚠️ Disclaimer
 
 Data waktu shalat yang disajikan dalam API ini dihimpun dan disesuaikan langsung dari data publik **Bimas Islam Kementerian Agama Republik Indonesia**. Penyusun/pengembang berusaha menjaga keakuratan pemrosesan data, namun tidak bertanggung jawab atas potensi ketidaksesuaian atau kesalahan data yang bersumber langsung dari data primer penyedia aslinya. Pengguna disarankan untuk tetap melakukan kroscek dengan otoritas setempat bila diperlukan.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
+
