@@ -1,4 +1,22 @@
-# 🕌 Adzan API
+<div align="center">
+  <img src="assets/logo.svg" alt="Adzan Logo" width="128" height="128" />
+
+  # 🕌 Adzan API
+
+  **High-Performance Indonesian Prayer Time Engine &amp; API (REST &amp; gRPC)**  
+  *Jadwal waktu shalat presisi khusus wilayah Indonesia 🇮🇩 selaras dengan data hisab resmi Bimas Islam Kementerian Agama RI.*
+
+  [![Go Report Card](https://goreportcard.com/badge/github.com/kaharman/adzan)](https://goreportcard.com/report/github.com/kaharman/adzan)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-1c6b5b.svg)](LICENSE)
+  [![Docker GHCR](https://img.shields.io/badge/Docker-ghcr.io%2Fkaharman%2Fadzan-2b7d6d?logo=docker&logoColor=white)](https://github.com/kaharman/adzan/pkgs/container/adzan)
+  [![Web App](https://img.shields.io/badge/Web%20App-adzan.kaharman.my.id-2d81af)](https://adzan.kaharman.my.id)
+
+  <br />
+
+  [🌐 Web Demo](https://adzan.kaharman.my.id) • [📖 Skenario](#-skenario-penggunaan) • [💾 Data Source](#-pilihan-data-source) • [🚀 Cara Menjalankan](#-cara-menjalankan) • [📡 Endpoint API](#-dokumentasi-endpoint-rest-api)
+</div>
+
+---
 
 **ADZAN** merupakan REST & gRPC API yang menyediakan jadwal waktu shalat presisi khusus untuk seluruh wilayah 🇮🇩 Indonesia.
 
@@ -150,6 +168,14 @@ http://localhost:4321/openapi/
   curl -s "http://localhost:4321/city?city_code=3171"
   curl -s "http://localhost:4321/city?latitude=-6.170089&longitude=106.831050"
   ```
+
+---
+
+## 🌐 Web Interface
+
+Tersedia antarmuka web modern dengan jam analog presisi, hitung mundur menuju waktu shalat berikutnya, kalender Hijriah, pratinjau jadwal imsakiyah, dan live core API explorer:
+* **Live Web App**: [https://adzan.kaharman.my.id](https://adzan.kaharman.my.id)
+* **Frontend Repository**: [kaharman/adzan-web](https://gitlab.com/kaharman/adzan-web)
 
 ---
 
