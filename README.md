@@ -175,7 +175,6 @@ http://localhost:4321/openapi/
 
 Tersedia antarmuka web modern dengan jam analog presisi, hitung mundur menuju waktu shalat berikutnya, kalender Hijriah, pratinjau jadwal imsakiyah, dan live core API explorer:
 * **Live Web App**: [https://adzan.kaharman.my.id](https://adzan.kaharman.my.id)
-* **Frontend Repository**: [kaharman/adzan-web](https://gitlab.com/kaharman/adzan-web)
 
 ---
 
