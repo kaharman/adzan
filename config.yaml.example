@@ -34,6 +34,9 @@ server:
   # Log level (error, warning, info, debug)
   log_level: debug
 
+  # Log format output (text, json) (default: json)
+  log_type: json
+
   # gRPC server port
   grpc_port: "54321"
 

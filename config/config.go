@@ -52,7 +52,10 @@ type Server struct {
 	Timeout Timeout `yaml:"timeout"`
 
 	// LogLevel is log level, available value: error, warning, info, debug
-	LogLevel string `yaml:"log_level"`
+	LogLevel string `yaml:"log_level" mapstructure:"log_level"`
+
+	// LogType is log format, available value: text, json (default: json)
+	LogType string `yaml:"log_type" mapstructure:"log_type"`
 
 	// GRPCPort is the local machine TCP port to bind the gRPC server to
 	GRPCPort string `yaml:"grpc_port"`
@@ -146,6 +149,7 @@ var defaultConfig = &Config{
 			Idle:  120,
 		},
 		LogLevel: "debug",
+		LogType:  "json",
 		GRPCPort: "54321",
 	},
 	// MySQL: MySQL{

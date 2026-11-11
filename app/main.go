@@ -8,6 +8,7 @@ import (
 	_UsecaseAdzan "adzan/adzan/usecase"
 	"adzan/config"
 	"adzan/domain"
+	"adzan/helper"
 	"context"
 	"flag"
 	"log/slog"
@@ -48,10 +49,18 @@ func main() {
 	default:
 		logLevel = slog.LevelInfo
 	}
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	logType := strings.ToLower(viper.GetString("server.log_type"))
+	var logHandler slog.Handler
+	handlerOpts := &slog.HandlerOptions{
 		Level: logLevel,
-	})))
-	slog.Info("Initialized slog logger", "level", logLevel.String())
+	}
+	if logType == "text" {
+		logHandler = slog.NewTextHandler(os.Stdout, handlerOpts)
+	} else {
+		logHandler = slog.NewJSONHandler(os.Stdout, handlerOpts)
+	}
+	slog.SetDefault(slog.New(logHandler))
+	slog.Info("Initialized slog logger", "level", logLevel.String(), "type", viper.GetString("server.log_type"))
 
 	// Initialize Data Source (Redis or CSV)
 	var prayTimeRepo domain.PrayTimeRepository
@@ -145,6 +154,13 @@ func main() {
 		StrictRouting: viper.GetBool("server.strict_routing"),
 		CaseSensitive: viper.GetBool("server.case_sensitive"),
 		BodyLimit:     viper.GetInt("server.body_limit"),
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			code := fiber.StatusInternalServerError
+			if e, ok := err.(*fiber.Error); ok {
+				code = e.Code
+			}
+			return helper.HttpError(c, code, err.Error(), nil)
+		},
 	})
 	app.Use(logger.New())
 	app.Use(recover.New())

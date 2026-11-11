@@ -31,7 +31,9 @@ func NewCSVCityRepository(baseDir string) domain.CityRepository {
 		byCode:  make(map[int]domain.City),
 		byName:  make(map[string]domain.City),
 	}
-	_ = repo.loadCities()
+	if err := repo.loadCities(); err != nil {
+		slog.Error("Failed to load cities.csv", "path", filepath.Join(baseDir, "cities.csv"), "error", err)
+	}
 	return repo
 }
 

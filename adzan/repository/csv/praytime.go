@@ -50,6 +50,7 @@ func (r *csvPrayTimeRepository) loadCityFile(cityCode int) (map[int]map[int]doma
 		if os.IsNotExist(err) {
 			return nil, errors.New("redis: nil") // Selaras dengan error handling di HTTP controller
 		}
+		slog.Error("Failed to open praytimes CSV file", "city_code", cityCode, "path", filePath, "error", err)
 		return nil, err
 	}
 	defer file.Close()
@@ -57,6 +58,7 @@ func (r *csvPrayTimeRepository) loadCityFile(cityCode int) (map[int]map[int]doma
 	reader := csv.NewReader(file)
 	header, err := reader.Read()
 	if err != nil {
+		slog.Error("Failed to read CSV header from praytimes file", "city_code", cityCode, "path", filePath, "error", err)
 		return nil, err
 	}
 	_ = header
