@@ -1,11 +1,9 @@
 package config
 
 import (
-	"bytes"
 	"log/slog"
 	"os"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -183,113 +181,62 @@ var defaultConfig = &Config{
 	DataSource: "redis",
 }
 
-func lookupEnv(parent string, rt reflect.Type, rv reflect.Value) {
+// registerDefaults recursively registers all leaf fields from defaultConfig into viper
+func registerDefaults(prefix string, rv reflect.Value) {
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	rt := rv.Type()
 	for i := 0; i < rt.NumField(); i++ {
-		structField := rt.Field(i)
-		tag := strings.Split(structField.Tag.Get("yaml"), ",")[0]
-		if structField.Type.Kind() == reflect.Struct {
-			lookupEnv(parent+strings.ToUpper(tag)+"_", structField.Type, rv.Field(i))
+		field := rt.Field(i)
+		tag := strings.Split(field.Tag.Get("yaml"), ",")[0]
+		if tag == "" || tag == "-" {
+			continue
+		}
+		key := tag
+		if prefix != "" {
+			key = prefix + "." + tag
+		}
+
+		fieldVal := rv.Field(i)
+		if fieldVal.Kind() == reflect.Struct {
+			registerDefaults(key, fieldVal)
 		} else {
-			env := parent + strings.ToUpper(tag)
-			value, exist := os.LookupEnv(env)
-			if exist {
-				slog.Debug("Config environment variable lookup", "env", env, "value", value)
-				switch structField.Type.Kind().String() {
-				case "string":
-					rv.Field(i).SetString(value)
-				case "bool":
-					val, err := strconv.ParseBool(value)
-					if err == nil {
-						rv.Field(i).SetBool(val)
-					}
-				case "int", "int8", "int16", "int32", "int64":
-					val, err := strconv.ParseInt(value, 10, 64)
-					if err == nil {
-						rv.Field(i).SetInt(val)
-					}
-				case "uint", "uint8", "uint16", "uint32", "uint64":
-					val, err := strconv.ParseUint(value, 10, 64)
-					if err == nil {
-						rv.Field(i).SetUint(val)
-					}
-				case "float32", "float64":
-					val, err := strconv.ParseFloat(value, 64)
-					if err == nil {
-						rv.Field(i).SetFloat(val)
-					}
-				case "slice":
-					values := strings.Split(strings.ReplaceAll(value, " ", ""), ",")
-					slice := reflect.MakeSlice(rt.Field(i).Type, len(values), len(values))
-					for idx, val := range values {
-						switch rt.Field(i).Type.String() {
-						case "[]string":
-							slice.Index(idx).Set(reflect.ValueOf(val))
-						case "[]bool":
-							v, err := strconv.ParseBool(val)
-							if err == nil {
-								slice.Index(idx).Set(reflect.ValueOf(v))
-							}
-						case "[]int", "[]int8", "[]int16", "[]int32", "[]int64":
-							v, err := strconv.ParseInt(val, 10, 64)
-							if err == nil {
-								slice.Index(idx).Set(reflect.ValueOf(v))
-							}
-						case "[]uint", "[]uint8", "[]uint16", "[]uint32", "[]uint64":
-							v, err := strconv.ParseUint(val, 10, 64)
-							if err == nil {
-								slice.Index(idx).Set(reflect.ValueOf(v))
-							}
-						case "[]float32", "[]float64":
-							v, err := strconv.ParseFloat(val, 64)
-							if err == nil {
-								slice.Index(idx).Set(reflect.ValueOf(v))
-							}
-						}
-					}
-					rv.Field(i).Set(slice)
-				}
-			}
+			viper.SetDefault(key, fieldVal.Interface())
 		}
 	}
-}
-
-// Init function of config
-func init() {
-	config := *defaultConfig
-	rt := reflect.TypeOf(&config).Elem()
-	rv := reflect.ValueOf(&config).Elem()
-	lookupEnv("", rt, rv)
-	*defaultConfig = rv.Interface().(Config)
 }
 
 func ReadConfig(configFile string) {
-	viper.SetConfigName(configFile)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/")
-	viper.AddConfigPath("/usr/local/etc/")
-	viper.AddConfigPath(".")
-	rt := reflect.TypeOf(defaultConfig).Elem()
-	rv := reflect.ValueOf(defaultConfig).Elem()
-	for i := 0; i < rt.NumField(); i++ {
-		tag := strings.Split(rt.Field(i).Tag.Get("yaml"), ",")[0]
-		name := rt.Field(i).Name
-		viper.SetDefault(tag, rv.FieldByName(name).Interface())
-	}
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			slog.Info("Config file not found, using default config")
-			cfgYAML, err := yaml.Marshal(defaultConfig)
-			if err != nil {
-				slog.Error("Failed to marshal default config", "error", err)
+	// 1. Register defaults for all leaf keys
+	registerDefaults("", reflect.ValueOf(defaultConfig))
+
+	// 2. Enable environment variable mapping (e.g. SERVER_LOG_LEVEL -> server.log_level)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	// 3. Resolve config file
+	if configFile != "" {
+		if _, err := os.Stat(configFile); err == nil {
+			viper.SetConfigFile(configFile)
+		} else {
+			viper.SetConfigName(configFile)
+			viper.SetConfigType("yaml")
+			viper.AddConfigPath(".")
+			viper.AddConfigPath("/usr/local/etc/")
+			viper.AddConfigPath("/")
+		}
+
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok || os.IsNotExist(err) {
+				slog.Info("Config file not found, using default configuration with environment overrides", "config_file", configFile)
+			} else {
+				slog.Error("Failed to read config file", "error", err, "config_file", configFile)
 				os.Exit(1)
 			}
-			viper.ReadConfig((bytes.NewBuffer(cfgYAML)))
 		} else {
-			slog.Error("Failed to read config file", "error", err)
-			os.Exit(1)
+			slog.Info("Config loaded successfully", "config_file", viper.ConfigFileUsed())
 		}
-	} else {
-		slog.Info("Config loaded successfully", "config_file", configFile)
 	}
 
 	c := viper.AllSettings()
