@@ -3,11 +3,11 @@ package http
 import (
 	"adzan/domain"
 	"adzan/helper"
+	"log/slog"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	log "github.com/sirupsen/logrus"
 )
 
 type AdzanHandler struct {
@@ -49,6 +49,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 	}
 	cityCodeStr := c.Query("city_code", "")
 	cityName := c.Query("city", "")
+	slog.Debug("Executing /today handler", "city_code", cityCodeStr, "city", cityName, "format", format, "language", language)
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -64,7 +65,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -74,7 +75,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -84,7 +85,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -101,7 +102,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -111,7 +112,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -121,7 +122,7 @@ func (adzan *AdzanHandler) GetTodayPrayTime(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -153,6 +154,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 	}
 	cityCodeStr := c.Query("city_code", "")
 	cityName := c.Query("city", "")
+	slog.Debug("Executing /daily handler", "date", dateStr, "city_code", cityCodeStr, "city", cityName, "format", format, "language", language)
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -167,7 +169,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -177,7 +179,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -187,7 +189,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -203,7 +205,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -213,7 +215,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -223,7 +225,7 @@ func (adzan *AdzanHandler) GetPrayTimeDaily(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -269,6 +271,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 	}
 	cityCodeStr := c.Query("city_code", "")
 	cityName := c.Query("city", "")
+	slog.Debug("Executing /monthly handler", "year", year, "month", month, "city_code", cityCodeStr, "city", cityName, "format", format, "language", language)
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -283,7 +286,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -293,7 +296,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -303,7 +306,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -319,7 +322,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -329,7 +332,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -339,7 +342,7 @@ func (adzan *AdzanHandler) GetPrayTimeMonthly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -374,6 +377,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 	}
 	cityCodeStr := c.Query("city_code", "")
 	cityName := c.Query("city", "")
+	slog.Debug("Executing /yearly handler", "year", year, "city_code", cityCodeStr, "city", cityName, "format", format, "language", language)
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -388,7 +392,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -398,7 +402,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -408,7 +412,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city_code", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -424,7 +428,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -434,7 +438,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -444,7 +448,7 @@ func (adzan *AdzanHandler) GetPrayTimeYearly(c *fiber.Ctx) (err error) {
 				if err.Error() == "redis: nil" {
 					return helper.HttpError(c, fiber.StatusBadRequest, "Invalid city", nil)
 				} else {
-					log.Debug(err)
+					slog.Debug("HTTP handler error", "error", err)
 					return helper.HttpError(c, fiber.StatusInternalServerError, "Internal server error", err.Error())
 				}
 			}
@@ -496,6 +500,7 @@ func (adzan *AdzanHandler) GetCity(c *fiber.Ctx) (err error) {
 	latitudeStr := c.Query("latitude", "")
 	longitudeStr := c.Query("longitude", "")
 	cityCodeStr := c.Query("city_code", "")
+	slog.Debug("Executing /city handler", "latitude", latitudeStr, "longitude", longitudeStr, "city_code", cityCodeStr)
 	if cityCodeStr != "" {
 		cityCode, err = strconv.ParseInt(cityCodeStr, 10, 64)
 		if err != nil {
@@ -527,6 +532,7 @@ func (adzan *AdzanHandler) GetCity(c *fiber.Ctx) (err error) {
 
 func (adzan *AdzanHandler) SearchCity(c *fiber.Ctx) (err error) {
 	keyword := c.Query("keyword", "")
+	slog.Debug("Executing /city/search handler", "keyword", keyword)
 	if keyword == "" {
 		return helper.HttpError(c, fiber.StatusBadRequest, "Keyword cannot be empty", nil)
 	}
@@ -544,6 +550,7 @@ func (adzan *AdzanHandler) SearchCity(c *fiber.Ctx) (err error) {
 
 func (adzan *AdzanHandler) HijriToday(c *fiber.Ctx) (err error) {
 	language := c.Query("language", "en")
+	slog.Debug("Executing /hijri handler", "language", language)
 	if language != "en" && language != "id" && language != "ar" {
 		return helper.HttpError(c, fiber.StatusBadRequest, "Invalid language", nil)
 	}

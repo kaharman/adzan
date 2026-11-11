@@ -2,13 +2,13 @@ package config
 
 import (
 	"bytes"
+	"log/slog"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
@@ -193,7 +193,7 @@ func lookupEnv(parent string, rt reflect.Type, rv reflect.Value) {
 			env := parent + strings.ToUpper(tag)
 			value, exist := os.LookupEnv(env)
 			if exist {
-				log.Info(env + " = " + value)
+				slog.Debug("Config environment variable lookup", "env", env, "value", value)
 				switch structField.Type.Kind().String() {
 				case "string":
 					rv.Field(i).SetString(value)
@@ -277,23 +277,25 @@ func ReadConfig(configFile string) {
 	}
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Info("Use default config")
+			slog.Info("Config file not found, using default config")
 			cfgYAML, err := yaml.Marshal(defaultConfig)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("Failed to marshal default config", "error", err)
+				os.Exit(1)
 			}
 			viper.ReadConfig((bytes.NewBuffer(cfgYAML)))
 		} else {
-			log.Fatal(err)
+			slog.Error("Failed to read config file", "error", err)
+			os.Exit(1)
 		}
 	} else {
-		log.Info("Use config file " + configFile)
+		slog.Info("Config loaded successfully", "config_file", configFile)
 	}
 
 	c := viper.AllSettings()
 	bs, err := yaml.Marshal(c)
 	if err != nil {
-		log.Error("Unable to marshal config to YAML: %v", err)
+		slog.Error("Unable to marshal config to YAML", "error", err)
 	}
-	log.Info(string(bs))
+	slog.Debug("Resolved configuration settings", "config_yaml", string(bs))
 }

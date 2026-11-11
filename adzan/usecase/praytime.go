@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	log "github.com/sirupsen/logrus"
 )
 
 type apiMyQuranKoordinat struct {
@@ -101,6 +101,7 @@ func buildTimeResponseDTO(year int, month time.Month, day int, schedule domain.P
 }
 
 func (p *prayTimeUsecase) getDaily(ctx context.Context, city domain.City, date string, lang string) (res domain.PrayTimeResponseDTO, err error) {
+	slog.Debug("Usecase fetching daily pray time", "city_code", city.Code, "city_name", city.City, "date", date, "lang", lang)
 	datetime, err := time.Parse("2006-01-02", date)
 	if err != nil {
 		return
@@ -784,7 +785,9 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 	}
 
 	code, body, errs := a.Bytes()
-	log.Debug(errs)
+	if len(errs) > 0 {
+		slog.Debug("External API request errors", "errors", errs)
+	}
 
 	var response apiMyQuranMonthlyResponse
 	if err = json.Unmarshal(body, &response); err != nil {
@@ -795,18 +798,18 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 		for _, pray := range response.Data.Jadwal {
 			date, errDate := time.Parse("2006-01-02", pray.Date)
 			if errDate != nil {
-				log.Error(errDate)
+				slog.Error("Failed to parse pray date", "error", errDate)
 				continue
 			}
 
 			sunriseTime, errSunrise := time.Parse("15:04", pray.Terbit)
 			if errSunrise != nil {
-				log.Error(errSunrise)
+				slog.Error("Failed to parse sunrise time", "error", errSunrise)
 				continue
 			}
 			maghribTime, errMaghrib := time.Parse("15:04", pray.Maghrib)
 			if errMaghrib != nil {
-				log.Error(errMaghrib)
+				slog.Error("Failed to parse maghrib time", "error", errMaghrib)
 				continue
 			}
 
@@ -829,7 +832,7 @@ func (p *prayTimeUsecase) CreatePrayTimeMonthlyAPIMyQuran(ctx context.Context, c
 
 		err = p.prayTimeRepo.SaveMonthly(ctx, cityCode, month, schedules)
 		if err != nil {
-			log.Error(err)
+			slog.Error("Failed to save monthly schedule to repository", "error", err)
 		}
 	} else {
 		err = errors.New("response " + strconv.FormatInt(int64(code), 10))

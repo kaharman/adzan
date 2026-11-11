@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
+	"log/slog"
 	"math"
 	"os"
 	"path/filepath"
@@ -88,10 +89,12 @@ func (r *csvCityRepository) loadCities() error {
 	}
 
 	r.loaded = true
+	slog.Debug("Loaded cities from CSV", "total_cities", len(r.cities), "file", filePath)
 	return nil
 }
 
 func (r *csvCityRepository) Search(ctx context.Context, keyword string) (res []domain.City, err error) {
+	slog.Debug("CSV CityRepository Search", "keyword", keyword)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -101,6 +104,7 @@ func (r *csvCityRepository) Search(ctx context.Context, keyword string) (res []d
 			res = append(res, city)
 		}
 	}
+	slog.Debug("CSV CityRepository Search results", "keyword", keyword, "matches", len(res))
 	return res, nil
 }
 
@@ -116,6 +120,7 @@ func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 }
 
 func (r *csvCityRepository) GetByLatLong(ctx context.Context, latitude float32, longitude float32) (res domain.City, err error) {
+	slog.Debug("CSV CityRepository GetByLatLong", "latitude", latitude, "longitude", longitude)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -147,6 +152,7 @@ func (r *csvCityRepository) GetByLatLong(ctx context.Context, latitude float32, 
 }
 
 func (r *csvCityRepository) GetByCityCode(ctx context.Context, cityCode int) (res domain.City, err error) {
+	slog.Debug("CSV CityRepository GetByCityCode", "city_code", cityCode)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -158,6 +164,7 @@ func (r *csvCityRepository) GetByCityCode(ctx context.Context, cityCode int) (re
 }
 
 func (r *csvCityRepository) GetByCityName(ctx context.Context, cityName string) (res domain.City, err error) {
+	slog.Debug("CSV CityRepository GetByCityName", "city_name", cityName)
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

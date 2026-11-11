@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -30,6 +31,7 @@ func (r *csvPrayTimeRepository) loadCityFile(cityCode int) (map[int]map[int]doma
 	r.mu.RLock()
 	if data, ok := r.cache[cityCode]; ok {
 		r.mu.RUnlock()
+		slog.Debug("CSV pray time cache hit", "city_code", cityCode)
 		return data, nil
 	}
 	r.mu.RUnlock()
@@ -42,6 +44,7 @@ func (r *csvPrayTimeRepository) loadCityFile(cityCode int) (map[int]map[int]doma
 	}
 
 	filePath := filepath.Join(r.baseDir, "praytimes", fmt.Sprintf("%d.csv", cityCode))
+	slog.Debug("Loading CSV pray times file from disk", "city_code", cityCode, "path", filePath)
 	file, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -95,6 +98,7 @@ func (r *csvPrayTimeRepository) loadCityFile(cityCode int) (map[int]map[int]doma
 }
 
 func (r *csvPrayTimeRepository) GetPrayTime(ctx context.Context, cityCode int, month int, day int) (res domain.PrayTimeSchedule, err error) {
+	slog.Debug("CSV GetPrayTime query", "city_code", cityCode, "month", month, "day", day)
 	cityData, err := r.loadCityFile(cityCode)
 	if err != nil {
 		return

@@ -9,15 +9,15 @@ import (
 	"adzan/config"
 	"adzan/domain"
 	"context"
-
 	"flag"
+	"log/slog"
 	"net"
+	"os"
 	"strings"
 
 	"google.golang.org/grpc"
 
 	"github.com/go-redis/redis/v8"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/gofiber/fiber/v2"
@@ -34,82 +34,57 @@ func main() {
 	// Config file
 	config.ReadConfig(*configFile)
 
-	// Set log level
-	switch viper.GetString("server.log_level") {
-	case "error":
-		log.SetLevel(log.ErrorLevel)
-	case "warning":
-		log.SetLevel(log.WarnLevel)
-	case "info":
-		log.SetLevel(log.InfoLevel)
+	// Set log level with standard library slog
+	var logLevel slog.Level
+	switch strings.ToLower(viper.GetString("server.log_level")) {
 	case "debug":
-		log.SetLevel(log.DebugLevel)
+		logLevel = slog.LevelDebug
+	case "info":
+		logLevel = slog.LevelInfo
+	case "warn", "warning":
+		logLevel = slog.LevelWarn
+	case "error":
+		logLevel = slog.LevelError
 	default:
-		log.SetLevel(log.InfoLevel)
+		logLevel = slog.LevelInfo
 	}
-
-	// // Initialize database
-	// connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", viper.GetString("mysql.user"), viper.GetString("mysql.password"), viper.GetString("mysql.host"), viper.GetString("mysql.port"), viper.GetString("mysql.database"))
-	// val := url.Values{}
-	// val.Add("parseTime", "1")
-	// val.Add("loc", "Asia/Jakarta")
-	// dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
-	// dbConn, err := sql.Open(`mysql`, dsn)
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// err = dbConn.Ping()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// defer func() {
-	// 	err := dbConn.Close()
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// }()
-
-	// // Migrate database if any new schema
-	// driver, err := mysql.WithInstance(dbConn, &mysql.Config{})
-	// if err == nil {
-	// 	mig, err := migrate.NewWithDatabaseInstance(viper.GetString("mysql.path_migrate"), viper.GetString("mysql.database"), driver)
-	// 	if err == nil {
-	// 		err = mig.Up()
-	// 		if err != nil && err != migrate.ErrNoChange {
-	// 			version, _, _ := mig.Version()
-	// 			ver := int(version) - 1
-	// 			mig.Force(ver)
-	// 		} else {
-	// 			log.Info("Migrate database success")
-	// 		}
-	// 	} else {
-	// 		log.Warn(err)
-	// 	}
-	// } else {
-	// 	log.Warn(err)
-	// }
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevel,
+	})))
+	slog.Info("Initialized slog logger", "level", logLevel.String())
 
 	// Initialize Data Source (Redis or CSV)
 	var prayTimeRepo domain.PrayTimeRepository
 	var cityRepo domain.CityRepository
 
 	dataSource := viper.GetString("data_source")
-	log.Infof("Configured data_source: %s", dataSource)
+	slog.Info("Configured data source", "data_source", dataSource)
+	slog.Debug("Resolved server configuration",
+		"port", viper.GetString("server.port"),
+		"grpc_port", viper.GetString("server.grpc_port"),
+		"base_path", viper.GetString("server.base_path"),
+		"prefork", viper.GetBool("server.prefork"),
+	)
 
 	if dataSource == "csv" {
 		csvPath := viper.GetString("csv.path")
 		if csvPath == "" {
 			csvPath = "./data"
 		}
-		log.Infof("Initializing CSV Repository from path: %s", csvPath)
+		slog.Info("Initializing CSV Repository", "path", csvPath)
+		slog.Debug("Loading prayer times and cities from CSV directory", "csv_path", csvPath)
 		prayTimeRepo = _RepositoryCSVAdzan.NewCSVPrayTimeRepository(csvPath)
 		cityRepo = _RepositoryCSVAdzan.NewCSVCityRepository(csvPath)
 	} else {
 		// Initialize Redis
+		redisAddr := viper.GetString("redis.host") + ":" + viper.GetString("redis.port")
+		slog.Info("Initializing Redis connection", "addr", redisAddr, "db", viper.GetInt("redis.database"))
+		slog.Debug("Redis client pool options",
+			"pool_size", viper.GetInt("redis.max_connection"),
+			"username", viper.GetString("redis.username"),
+		)
 		dbRedis := redis.NewClient(&redis.Options{
-			Addr:     viper.GetString("redis.host") + ":" + viper.GetString("redis.port"),
+			Addr:     redisAddr,
 			Username: viper.GetString("redis.username"),
 			Password: viper.GetString("redis.password"),
 			DB:       viper.GetInt("redis.database"),
@@ -118,9 +93,10 @@ func main() {
 
 		_, err := dbRedis.Ping(context.Background()).Result()
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("Failed to connect to Redis", "error", err)
+			os.Exit(1)
 		}
-		log.Info("Redis connection established")
+		slog.Info("Redis connection established successfully")
 
 		prayTimeRepo = _RepositoryRedisAdzan.NewRedisPrayTimeRepository(dbRedis)
 		cityRepo = _RepositoryRedisAdzan.NewRedisCityRepository(dbRedis)
@@ -149,15 +125,17 @@ func main() {
 	go func() {
 		listen, err := net.Listen("tcp", ":"+viper.GetString("server.grpc_port"))
 		if err != nil {
-			log.Fatalf("[ERROR] Failed to listen tcp: %v", err)
+			slog.Error("Failed to listen tcp for gRPC", "error", err)
+			os.Exit(1)
 		}
 
 		grpcServer := grpc.NewServer()
-		// TODO: reegister services
+		// TODO: register services
 
-		log.Println("gRPC server is running")
+		slog.Info("gRPC server is running", "port", viper.GetString("server.grpc_port"))
 		if err := grpcServer.Serve(listen); err != nil {
-			log.Fatalf("Failed to serve: %v", err)
+			slog.Error("Failed to serve gRPC", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -174,6 +152,21 @@ func main() {
 		AllowOrigins: viper.GetString("middleware.allows_origin"),
 	}))
 
+	// Log incoming request and received headers at slog.Info level
+	app.Use(func(c *fiber.Ctx) error {
+		headers := make(map[string]string)
+		c.Request().Header.VisitAll(func(key, val []byte) {
+			headers[string(key)] = string(val)
+		})
+		slog.Info("Incoming request received",
+			"method", c.Method(),
+			"path", c.OriginalURL(),
+			"remote_ip", c.IP(),
+			"headers", headers,
+		)
+		return c.Next()
+	})
+
 	// HTTP routing with optional base_path prefix
 	basePath := strings.TrimSpace(viper.GetString("server.base_path"))
 	if basePath != "" && !strings.HasPrefix(basePath, "/") {
@@ -183,7 +176,7 @@ func main() {
 
 	var router fiber.Router = app
 	if basePath != "" {
-		log.Infof("Using server base_path routing prefix: %s", basePath)
+		slog.Info("Using server base_path routing prefix", "base_path", basePath)
 		router = app.Group(basePath)
 		app.Get("/", func(c *fiber.Ctx) error {
 			return c.Redirect(basePath + "/web")
@@ -206,8 +199,10 @@ func main() {
 	hijriUsecase := _UsecaseAdzan.NewHijriUsecase(hijriRepo)
 	_DeliveryHTTPAdzan.RouterAPI(router, prayTimeUsecase, cityUsecase, hijriUsecase)
 
-
-	if err := app.Listen(":" + viper.GetString("server.port")); err != nil {
-		log.Fatal(err)
+	port := viper.GetString("server.port")
+	slog.Info("Starting HTTP server", "port", port)
+	if err := app.Listen(":" + port); err != nil {
+		slog.Error("Failed to start HTTP server", "error", err)
+		os.Exit(1)
 	}
 }
